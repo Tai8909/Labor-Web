@@ -1,0 +1,11 @@
+﻿<h2 class="message">
+    There was an unexpected error while signing in to the system.
+</h2>
+<script language="javascript">
+    window.onload = function () { 
+        var answer = confirm("帳號與密碼不符或者存取錯誤，請重新登入"); //把確認框賦值給answer
+        if (answer) //判斷是否點擊確定
+            window.history.back(-1); //確定的話跳轉
+    }
+    
+</script>

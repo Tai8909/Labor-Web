@@ -1,0 +1,136 @@
+﻿@{
+    ViewData["Title"] = "管理保單";
+}
+
+<script src="~/js/studentIdCheck.js"></script>
+@* script for checking if the '#StudentID' element is in correct format *@
+
+<form method="post" id="selectlabform" action = "/Home/InsuranceFeePayment" class="form-group">
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID">被保險人學號/身分證字號:</label>
+                @if (Convert.ToString(TempData["card"]).Length == 8)
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value=@TempData["card"] readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value=@ViewData["StudentID"]>
+                }
+                <small id="StudentIDSmall" class="form-text text-muted"></small>
+                <script language="javascript">
+                    var Salary = document.getElementById('StudentID');
+                    Salary.addEventListener('input', checkidnt);
+                    // checkidnt si a funtion from above script
+                </script>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID">雇主ID:</label>
+                @if (Convert.ToString(TempData["card"]).Length == 4 && Convert.ToString(TempData["ismanager"]) == "false")
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossID" placeholder="輸入雇主ID" value=@TempData["card"] readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossID" placeholder="輸入雇主ID" value=@ViewData["TeacherID"] >
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-5">
+            <div class="form-group">
+                <label for="StartTime">保單開始日期:</label>
+                <input type="text" class="form-control" id="StartTime" name="StartTime" aria-describedby="StartTime" value="@ViewData["StartTime"]" max="" min=""
+                    placeholder="輸入保單開始日期"
+                    onfocus="(this.type='date')"
+                    onblur="(this.type='text')"
+                >
+            </div>
+        </div>
+        <div class="col-5">
+            <div class="form-group">
+                <label for="EndTime">保單結束日期:</label>
+                <input type="text" class="form-control" id="EndTime" name="EndTime" aria-describedby="EndTime" value="@ViewData["EndTime"]" max="" min=""
+                    placeholder="輸入保單結束日期"
+                    onfocus="(this.type='date')"
+                    onblur="(this.type='text')"
+                >
+            </div>
+        </div>
+        <div class="col-2">
+            <label title="">日期過濾方式:</label>
+            <br/>
+            <div class="form-check form-check-inline" id="idfk" title="將列出所有時間區段包含在輸入時間內的資料(不包含超出的資料)">
+                <input class="form-check-input" type="radio" id="IncludeDate" name="DateCheckMethod" value="inc">
+                <label class="form-check-label" for="IncludeDate">包含</label>
+            </div>
+            <div class="form-check form-check-inline" title="將列出所有時間區段和輸入時間重疊的資料">
+                <input class="form-check-input" type="radio" id="OverlapDate" name="DateCheckMethod" value="over">
+                <label class="form-check-label" for="OverlapDate">重疊</label>
+            </div>
+            <script>
+                // Script that'll change the checked radio button according to the ViewData's value
+                // ViewData will contains the value for the radio group above
+                let radioBtnOver = document.querySelector("#OverlapDate");
+                let radioBtnInc = document.querySelector("#IncludeDate");
+                let btnValue = "@ViewData["DateCheckMethod"]";
+                if(btnValue == "over"){
+                    radioBtnOver.checked = true;
+                }else{
+                    radioBtnInc.checked = true;
+                }
+            </script>
+        </div>
+    </div>
+    @if (Convert.ToString(TempData["ismanager"]) == "true")
+    {
+        <div class="form-group">
+            <label for="CheckDate">保單起訖日期:</label>
+        <input type="text" class="form-control" id="CheckDate" name="CheckDate" aria-describedby="EndTime" value="@ViewData["CheckTime"]" max="" min=""
+            placeholder="輸入保單檢查日期"
+            onfocus="(this.type='date')"
+            onblur="(this.type='text')"
+        >
+        </div>
+    }
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+</form>
+<div id="targetDiv">
+    <table class="table">
+        <thead id="tblhead">
+            <tr>
+                <th>僱主</th>
+                <th>被保險人學號</th>
+                <th>起始時間</th>
+                <th>結束時間</th>
+                <th>保單編號</th>
+                <th>勞保公提</th>
+                <th>勞保自提</th>
+                <th>勞保工資墊償金</th>
+                <th>勞退公提</th>
+                <th>勞退自提</th>
+                </tr>
+        </thead>
+        <tbody id="tblbody">
+            @foreach (var item in ViewData["resultlist"] as List<PaymentSearch>)
+            {
+                <tr>
+                <td>@item.Boss</td>
+                <td>@item.StudentID</td>
+                <td>@item.PaymentStartTime.ToString("yyyy/MM/dd")</td>
+                <td>@item.PaymentEndTime.ToString("yyyy/MM/dd")</td>
+                <td>@item.FormNo</td>
+                <td>@item.DepLabor</td>
+                <td>@item.SelfLabor</td>
+                <td>@item.LaborFund</td>
+                <td>@item.DepRetire</td>
+                <td>@item.SelfRetire</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

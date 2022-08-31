@@ -1,0 +1,344 @@
+﻿@{
+    ViewData["Title"] = "保單詳細資料";
+}
+
+<style type="text/css">
+    #DIV1 {
+        width: 200px;
+        line-height:50px;
+        padding:20px;
+        border:2px blue solid;
+        margin-right:10px;
+        float:left;
+    }
+
+    #DIV2 {
+        width: 200px;
+        line-height: 50px;
+        padding: 20px;
+        border: 2px green solid;
+        float: left;
+    }
+</style>
+
+<script language="javascript">
+    function convertToISO(timebit) {
+        // remove GMT offset
+        timebit.setHours(0, -timebit.getTimezoneOffset(), 0, 0);
+        // format convert and take first 10 characters of result
+        var isodate = timebit.toISOString().slice(0, 10);
+        return isodate;
+    }
+</script>
+
+<div id="targetDiv">
+</div>
+<br />
+<form method="post" id="alterlabform" class="form-group">
+    <div id="form-group">
+        <input type="hidden" class="form-control" id="No" name="No" value="">
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="ReceivePerson">收件人</label>
+                <input type="text" class="form-control" id="ReceivePerson" name="ReceivePerson" aria-describedby="ReceivePersonSmall" placeholder="輸入收件人" value="">
+                <small id="ReceivePersonSmall" class="form-text text-muted"></small>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="InsuranceType">投保類型</label>
+                <select id="InsuranceType" name="InsuranceType" class="form-control">
+                    <option id="InsuranceType_Day">日保</option>
+                    <option id="InsuranceType_Month" selected>月保</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group" id="FormStatusDiv">
+                <p>審核狀態</p>
+                <input type="radio" id="Accept" name="FormStatus" value="審核通過" checked="checked">
+                <label for="Accept">審核通過</label><br />
+                <input type="radio" id="Reject" name="FormStatus" value="審核失敗">
+                <label for="Reject">審核失敗</label>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group" id="ActualStartTimeDiv">
+                <label for="ActualStartTime">實際加保時間</label>
+                <input type="date" class="form-control" id="ActualStartTime" name="ActualStartTime" aria-describedby="ActualStartTimeSmall" placeholder="實際加保時間" value="" max="" min="">
+                <small id="ActualStartTimeSmall" class="form-text text-muted"></small>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group" id="RejectReasonDiv">
+                <label for="RejectReason">審核失敗原因</label>
+                <input type="text" class="form-control" id="RejectReason" name="RejectReason" aria-describedby="RejectReasonSmall" placeholder="輸入審核失敗原因" value="">
+                <small id="RejectReasonSmall" class="form-text text-muted"></small>
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="LaborRank">勞保級距</label>
+        <input type="number" class="form-control" id="LaborRank" name="LaborRank" aria-describedby="LaborRank" placeholder="輸入勞保級距" value="">
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="SelfLabor">勞保自提</label>
+                <input type="number" class="form-control" id="SelfLabor" name="SelfLabor" aria-describedby="SelfLabor" placeholder="輸入勞保自提" value="">
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="DepLabor">勞保公提</label>
+                <input type="number" class="form-control" id="DepLabor" name="DepLabor" aria-describedby="DepLabor" placeholder="輸入工資墊償金" value="">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="LaborFund">勞保工資墊償金</label>
+                <input type="number" class="form-control" id="LaborFund" name="LaborFund" aria-describedby="LaborFund" placeholder="輸入勞退自提" value="">
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="RetireRank">勞退級距</label>
+                <input type="number" class="form-control" id="RetireRank" name="RetireRank" aria-describedby="RetireRank" placeholder="輸入勞保公提" value="">
+            </div>
+        </div>
+    </div>
+    <div class="form-group" id="SelfRetirePercent"></div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="SelfRetire">勞退自提</label>
+                <input type="number" class="form-control" id="SelfRetire" name="SelfRetire" aria-describedby="SelfRetire" placeholder="輸入勞退級距" value="">
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="DepRetire">勞退公提</label>
+                <input type="number" class="form-control" id="DepRetire" name="DepRetire" aria-describedby="DepRetire" placeholder="輸入勞退公提" value="">
+            </div>
+        </div>
+    </div>
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+</form>
+
+@section scripts
+{
+    <script>
+        function insurancefee(){
+            if($( "#Accept").is(':checked')){
+                var day = null
+                if($("#InsuranceType").val()!="月保"){
+                    day = $("#PartDay").text().split(":")[1].replace("天","");
+                }
+                var data = '{"Salary":'+ count_salary() +
+                        ',"SelfRetirePercent":' + $("#SelfRetirePercent").text().split(":")[1].split("%")[0] +
+                        ',"StartTime":"' + $("#ActualStartTime").val() +
+                        '","EndTime":"' + $("#EndTime").text().split(":")[1] +
+                        '","Foreign":"' + $("#IsForeign").text().split(":")[1] +
+                        '","PartDay":"' + day +
+                        '","InsuranceType":"' + $("#InsuranceType").val() +'"}';
+                console.log(data);
+                $.ajax({
+                    url:"/api/school/InsuranceFee",
+                    type:"POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: data,
+                    success: function (result, status) {
+                        console.log(result);
+                        console.log(result[0].laborRank);
+                        $("#LaborRank").val(result[0].laborRank);
+                        $("#SelfLabor").val(result[0].selfLabor);
+                        $("#DepLabor").val(result[0].depLabor);
+                        $("#LaborFund").val(result[0].laborFund);
+                        $("#RetireRank").val(result[0].retireRank);
+                        $("#SelfRetire").val(result[0].selfRetire);
+                        $("#DepRetire").val(result[0].depRetire);
+                    },
+                    error:function (error){
+                        console.log(error);
+                    }
+                });
+            }
+        }
+
+        function count_salary(){
+            if($("#Class").text().split(":")[1].replaceAll(" ","")=="月薪"){
+                var salary = $("#Salary").text().split(":")[1];
+                return salary;
+            }else{
+                var salary = $("#PartSalary").text().split(":")[1].replace("元","");
+                if($("#Class").text().split(":")[1].replaceAll(" ","")=="時薪"){
+                    salary = salary*8;
+                }
+                if($("#InsuranceType").val()=="日保"){
+                    salary = salary * 30;
+                }else{
+                    salary = salary * $("#PartDay").text().split(":")[1].replace("天","");
+                }
+                return salary;
+            }
+        }
+
+        $("document").ready(function () {
+            $("#RejectReasonDiv").hide();
+            var currentSearchString = window.location.search;
+            currentSearchString = currentSearchString.replace("?No=","");
+            console.log(currentSearchString);
+            var data = "/api/school/"+currentSearchString;
+            $.ajax({
+                url: data,
+                type: "GET",
+                success: function (result, status) {
+                    console.log(result);
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=ApplyItem>申請項目:' + result[0].applyItem +
+                        '</div></div><div class="col"><div id=StudentID>被保險人學號:' + result[0].studentID + '</div></div></div>');
+                    /*
+                    $("#targetDiv").append('');
+                    $("#targetDiv").append('');
+                    $("#targetDiv").append('');
+                    $("#targetDiv").append('');
+                    $("#targetDiv").append('');
+                    */
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=HiredName>被保險人姓名:' + result[0].hiredName +
+                        '</div></div><div class="col"><div id=ID>被保險人身分證字號:' + result[0].id + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=School>被保險人學校/系所:' + result[0].school +
+                        '</div></div><div class="col"><div id=Birthday>被保險人出生日期:' + result[0].birthday.split("T")[0] + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=Phone>被保險人手機:' + result[0].phone +
+                        '</div></div><div class="col"><div id=Email>被保險人E-mail:' + result[0].email + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=IsForeign>被保險人國籍:' + result[0].isForeign +
+                        '</div></div><div class="col"><div id=Disability>被保險人身心障礙等級:' + result[0].disability + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=WorkType>被保險人工作類別:' + result[0].workType +
+                        '</div></div><div class="col"><div id=HiredDep>用人單位:' + result[0].hiredDep + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=Boss>僱主:' + result[0].boss +
+                        '</div></div><div class="col"><div id=Bugeno>計畫編號:' + result[0].bugeno + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div class="row"><div class="col"><div id=StartTime>起始/退保時間:' + result[0].startTime.split("T")[0] +
+                        '</div></div><div class="col"><div id=EndTime>結束時間:' + result[0].endTime.split("T")[0] + '</div></div></div>');
+                    //$("#targetDiv").append('');
+                    $("#targetDiv").append('<div id=Class>薪資類別:' + result[0].class + '</div>');
+                    if(result[0].class.replaceAll(" ","")=="月薪"){
+                        $("#InsuranceType_Day").attr('disabled','disabled');
+                    }if(result[0].class.replaceAll(" ","")=="日薪"){
+                        $("#targetDiv").append('<div id="PartSalary">每日:' + result[0].partSalary + '元</div>');
+                        $("#targetDiv").append('<div id="PartDay">天數:' + result[0].partDay + '天</div>');
+                    }if(result[0].class.replaceAll(" ","")=="時薪"){
+                        $("#targetDiv").append('<div id="PartSalary">每小時:' + result[0].partSalary + '元</div>');
+                        $("#targetDiv").append('<div id="PartDay">天數:' + result[0].partDay + '天</div>');
+                    }
+                    $("#SelfRetirePercent").append('<div>自提勞工退休金:' + result[0].selfRetirePercent + '%</div>');
+                    $("#targetDiv").append('<div id="Salary">薪水:' + result[0].salary + '</div>');
+                    $("#ActualStartTime").val(result[0].startTime.split("T")[0]);
+                    $("#ActualStartTime").attr('min',result[0].startTime.split("T")[0]);
+                    $("#ActualStartTime").attr('max',result[0].endTime.split("T")[0]);
+                    $("#No").val(result[0].no);
+                    insurancefee();
+                },
+                error: function (error) {
+                    console.log("error");
+                }
+            });
+        });
+
+        $("#ActualStartTime").on('change',function(){
+            insurancefee();
+        })
+
+        $("#InsuranceType").on('change',function(){
+            count_salary();
+            insurancefee();
+        })
+
+        $("#FormStatusDiv").on('change',function(){
+            if($( "#Accept").is(':checked')){
+                $("#RejectReasonDiv").hide();
+                $("#ActualStartTimeDiv").show();
+            }if($( "#Reject").is(':checked')){
+                $("#ActualStartTimeDiv").hide();
+                $("#RejectReasonDiv").show();
+            }
+        })
+
+        function getFormData($form){
+            var unindexed_array = $form.serializeArray();
+            var indexed_array = {};
+            $.map(unindexed_array, function(n, i){
+                indexed_array[n['name']] = n['value'];
+            });
+            return indexed_array;
+        }
+
+        $("#alterlabform").on('submit',function (e) {
+            e.preventDefault();
+            if($( "#Accept").is(':checked')){
+                $("#RejectReason").val("");
+            }if($( "#Reject").is(':checked')){
+                $("#ActualStartTime").val("");
+            }
+            var $form = $("#alterlabform");
+            var data = getFormData($form);
+            $.ajax({
+                url: "/api/school",
+                type: "PUT",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(data),
+                success: function (result, status) {
+                    $("#targetDiv").append('<div id=InsuranceType>投保類型:' + result.insuranceType + '</div>');
+                    $("#targetDiv").append('<div>審核狀態:' + result.formStatus + '</div>');
+                    if(result.receiveTime!=null){
+                        $("#targetDiv").append('<div>收件時間:' + result.receiveTime.split("T")[0] + '</div>');
+                    }if(result.receivePerson!=null){
+                        $("#targetDiv").append('<div>收件人:' + result.receivePerson + '</div>');
+                    }if(result.actualStartTime!=null){
+                        $("#targetDiv").append('<div>實際加保日期:' + result.actualStartTime.split("T")[0] + '</div>');
+                    }if(result.rejectReason!=null){
+                        $("#targetDiv").append('<div>審核失敗原因:' + result.rejectReason + '</div>');
+                    }if(result.labInsuranceFee[0].laborRank!=null){
+                        $("#targetDiv").append('<div>勞保級距:' + result.labInsuranceFee[0].laborRank + '</div>');
+                    }if(result.labInsuranceFee[0].selfLabor!=null){
+                        $("#targetDiv").append('<div>勞保自提:' + result.labInsuranceFee[0].selfLabor + '</div>');
+                    }if(result.labInsuranceFee[0].depLabor!=null){
+                        $("#targetDiv").append('<div>勞保公提:' + result.labInsuranceFee[0].depLabor + '</div>');
+                    }if(result.labInsuranceFee[0].laborFund!=null){
+                        $("#targetDiv").append('<div>勞保工資墊償金:' + result.labInsuranceFee[0].laborFund + '</div>');
+                    }if(result.labInsuranceFee[0].retireRank!=null){
+                        $("#targetDiv").append('<div>勞退級距:' + result.labInsuranceFee[0].retireRank + '</div>');
+                    }if(result.selfRetirePercent!=null){
+                        $("#targetDiv").append('<div>自提勞工退休金:' + result.selfRetirePercent + '%</div>');
+                    }if(result.labInsuranceFee[0].selfRetire!=null){
+                        $("#targetDiv").append('<div>勞退自提:' + result.labInsuranceFee[0].selfRetire + '</div>');
+                    }if(result.labInsuranceFee[0].depRetire!=null){
+                        $("#targetDiv").append('<div>勞退公提:' + result.labInsuranceFee[0].depRetire + '</div>');
+                    }
+                    $("#alterlabform").remove();
+                },
+                error: function (error) {
+                    console.log(error);
+                    $("small").empty();
+                    if(error.responseJSON.errors.ActualStartTime!=null){
+                        $("#ActualStartTimeSmall").append(error.responseJSON.errors.ActualStartTime);
+                    }if(error.responseJSON.errors.RejectReason!=null){
+                        $("#RejectReasonSmall").append(error.responseJSON.errors.RejectReason);
+                    }if(error.responseJSON.errors.ReceivePerson!=null){
+                        $("#ReceivePersonSmall").append(error.responseJSON.errors.ReceivePerson);
+                    }
+                }
+            });
+        });
+    </script>
+}
+

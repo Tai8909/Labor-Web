@@ -1,0 +1,904 @@
+﻿@{
+    ViewData["Title"] = "投保作業";
+}
+<script language="javascript">
+    let start = [];
+    let end = [];
+    let num = [];
+    let proj_num = [];
+    let remain = [];
+    let fund_name = [];
+    function convertToISO(timebit) {
+        // remove GMT offset
+        timebit.setHours(0, -timebit.getTimezoneOffset(), 0, 0);
+        // format convert and take first 10 characters of result
+        var isodate = timebit.toISOString().slice(0, 10);
+        return isodate;
+    }
+    function noSundays(e) {
+        // Days in JS range from 0-6 where 0 is Sunday and 6 is Saturday
+        var day = new Date(e.target.value).getUTCDay();
+        if (day == 0 || day == 6) {
+            e.target.setCustomValidity('不可選擇週日！');
+            document.getElementById("StartTimeSmall").innerHTML = '不可選擇週日！';
+        } else {
+            e.target.setCustomValidity('');
+            document.getElementById("StartTimeSmall").innerHTML = '';
+        }
+    }
+    function noStartExceed(e) {
+        var pro_start_time = new Date(document.getElementById('ProjectStartTime').value);
+        var start_time = new Date(document.getElementById('StartTime').value);
+        if (start_time < pro_start_time) {
+            e.target.setCustomValidity('不可選擇比計畫開始日期還早的日子！');
+            document.getElementById("StartTime").setCustomValidity('不可選擇比計畫開始日期還早的日子！');
+            document.getElementById("StartTimeSmall").innerHTML = '不可選擇比計畫開始日期還早的日子！';
+        }
+        else {
+            e.target.setCustomValidity('');
+            document.getElementById("StartTime").setCustomValidity('');
+            document.getElementById("StartTimeSmall").innerHTML = '';
+        }
+    }
+    function noEndExceed(e) {
+        var pro_end_time = new Date(document.getElementById('ProjectEndTime').value);
+        var end_time = new Date(document.getElementById('EndTime').value);
+        if (end_time > pro_end_time) {
+            e.target.setCustomValidity('不可選擇比計畫結束日期還晚的日子！');
+            document.getElementById("EndTime").setCustomValidity('不可選擇比計畫結束日期還晚的日子！');
+            document.getElementById("EndTimeSmall").innerHTML = '不可選擇比計畫結束日期還晚的日子！';
+        }
+        else {
+            e.target.setCustomValidity('');
+            document.getElementById("EndTime").setCustomValidity('');
+            document.getElementById("EndTimeSmall").innerHTML = '';
+        }
+    }
+    function noExceedBudget(e) {
+        var Salary = document.getElementById('Salary').value;
+        Salary = Number(Salary);
+        var Plan_budget = document.getElementById('remain').value;
+        Plan_budget = Number(Plan_budget);
+        if (Salary > Plan_budget) {
+            document.getElementById("Salary").setCustomValidity('薪水已超過計畫預算！');
+            document.getElementById("SalarySmall").innerHTML = '薪水已超過計畫預算！';
+        }
+        else {
+            document.getElementById("Salary").setCustomValidity('');
+            document.getElementById("SalarySmall").innerHTML = '';
+        }
+    }
+    function GetHiredDep(data){
+        $.ajax({
+            url:"/api/school/GetHiredDep",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            data: data,
+            success: function (result, status) {
+                if(! jQuery.isEmptyObject(result)){
+                    var name = result[0].userName;
+                    $("#Boss").val(name);
+                    var select2 = document.getElementById("Bossdep");
+                    for(var i = 0; i < result.length; i++){
+                        var option = document.createElement("option");
+                        var name = result[i].depName;
+                        option.setAttribute("value",name);
+                        option.appendChild(document.createTextNode(name));
+                        select2.appendChild(option);
+                    }
+                }
+                else{
+                    $("#Boss").val('');
+                    $("#Bossdep").empty();
+                    budget_clear();
+                }
+            },
+            error:function (error){
+                console.log(error);
+            }
+        });
+        return data;
+    }
+    function containSpecial(s){
+        var containSpecial = RegExp(/[(\ )(\~)(\!)(\#)(\$)(\%)(\^)(\&)(\*)(\()(\))(\-)(\_)(\+)(\=)(\[)(\])(\{)(\})(\|)(\\)(\;)(\:)(\')(\")(\,)(\.)(\/)(\<)(\>)(\?)(\)]+/);
+        return ( containSpecial.test(s) );
+    }
+    function checkidnt(e){
+        var bookdate = document.getElementById('ID').value;
+        var pattern2 = new RegExp("[A-Za-z]+");
+        if ((bookdate.length != 8 && bookdate.length != 10) || containSpecial(bookdate) || pattern2.test(bookdate.charAt(0)) == false) {
+            e.target.setCustomValidity('身分證字號格式輸入錯誤，請檢查有無非法字元或者其他問題');
+            document.getElementById("ID").setCustomValidity('身分證字號格式輸入錯誤，請檢查有無非法字元或者其他問題');
+            document.getElementById("IDSmall").innerHTML = '身分證字號格式輸入錯誤，請檢查有無非法字元或者其他問題';
+        }
+        else {
+            e.target.setCustomValidity('');
+            document.getElementById("ID").setCustomValidity('');
+            document.getElementById("IDSmall").innerHTML = '';
+        }
+    }
+    /*
+    function checkbudget() {
+        var Salary = document.getElementById('Salary');
+        var ProjectName = document.getElementById('ProjectName');
+        Salary.addEventListener('input', noExceedBudget);
+        ProjectName.addEventListener('input', noExceedBudget);
+    }
+    */
+    function StudentInfo(data){
+        console.log(data);
+        $.ajax({
+            url:"/api/school/Studentinfo",
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            data: data,
+            success: function (result, status) {
+                if(! jQuery.isEmptyObject(result)){
+                    console.log(result);
+                    $("#HiredName").val(result[0].cname);
+                    $("#ID").val(result[0].id);
+                    var date_time = result[0].birthday;
+                    var readable_date = date_time.substr(0,10);
+                    $("#Birthday").val(Convertdate(readable_date));
+                    $("#sclass").val(result[0].sclass);
+                    $("#SchoolDep").val(result[0].department);
+                    $("#SchoolName").val("高雄大學");
+                    $("#Email").val(result[0].email);
+                    $("#Phone").val(result[0].phone);
+                    $("#School").val("高雄大學/" + result[0].department);
+                    var Pclass = result[0].pclass.trim();
+                    switch (Pclass) {
+                        case 'A':
+                            Pclass = "大學部";
+                            break;
+                        case 'M':
+                            Pclass = "碩士班";
+                            break;
+                        case 'L':
+                            Pclass = "碩士在職專班";
+                            break;
+                        case 'F':
+                            Pclass = "二年制在職專班";
+                            break;
+                        case 'D':
+                            Pclass = "博士班";
+                            break;
+                        case 'E':
+                            Pclass = "高階經營管理碩士在職專班";
+                            break;
+                        case 'K':
+                            Pclass = "產業碩士在職專班";
+                            break;
+                    }
+                    $("#pclass").val(Pclass);
+                }
+                else{
+                    $("#HiredName").val('');
+                    $("#ID").val('');
+                    $("#Birthday").val('');
+                    $("#pclass").val('');
+                    $("#sclass").val('');
+                    $("#School").val('');
+                    $("#SchoolDep").val('');
+                    $("#SchoolName").val('');
+                    $("#Email").val('');
+                    $("#Phone").val('');
+                }
+            },
+            error:function (error){
+                console.log(error);
+            }
+        });
+        return data;
+    }
+    function GetBudget(data,passurl){
+        console.log(data);
+        $.ajax({
+            //url:"/api/school/GetProjectBudget",
+            //url:"/api/school/GetDepBudget",
+            url:passurl,
+            type:"POST",
+            contentType: "application/json; charset=utf-8",
+            data: data,
+            success: function (result, status) {
+                if(! jQuery.isEmptyObject(result)){
+                    console.log(result);
+                    var select = document.getElementById("Proj_No");
+                    var name;
+                    select.length = 1;
+                    for(var i = 0; i < result.length; i++){
+                        if(passurl == "/api/school/GetProjectBudget"){
+                            name = result[i].projectName;
+                            start.push(result[i].startDate);
+                            end.push(result[i].endDate);
+                        }
+                        else{
+                            name = result[i].depCName;
+                            start.push("NULL");
+                            end.push("NULL");
+                        }
+                        if(! proj_num.includes(result[i].projectNo)){
+                            var option = document.createElement("option");
+                            var name = result[i].projectNo + " " + name;
+                            option.setAttribute("value",result[i].projectNo);
+                            option.appendChild(document.createTextNode(name));
+                            select.appendChild(option);
+                        }
+                        num.push(result[i].projectNo);
+                        remain.push(result[i].budget_remain);
+                        proj_num.push(result[i].projectNo);
+                        fund_name.push(result[i].fundName);
+                    }
+                    ProjectName.selectedIndex=result.length;
+                }
+                else{
+                     budget_clear();
+                }
+            },
+            error:function (error){
+                console.log(error);
+            }
+        });
+        return data;
+    }
+    function budget_clear(){
+        $("#Fund_P").empty();
+        $("#Proj_No").empty();
+        $("#Bugeno").val('');
+        $("#ProjectStartTime").val('');
+        $("#ProjectEndTime").val('');
+        $("#remain").val('');
+        $("#AccountID").val('');
+        $("#Fundname").val('');
+        start = [];
+        end = [];
+        num = [];
+        remain = [];
+        proj_num = [];
+        fund_name = [];
+    }
+    function ProjectName(data){
+        var index = parseInt(data);
+        if(start[index] != "NULL"){
+            var start_date = Convertdate(start[index]);
+            $("#ProjectStartTime").val(start_date);
+        }
+        if(end[index] != "NULL"){
+            var end_date = Convertdate(end[index]);
+            $("#ProjectEndTime").val(end_date);
+        }
+        $("#remain").val(remain[index]);
+        $("#Bugeno").val(num[index]);
+        $("#Fundname").val(fund_name[index]);
+        return data;
+    }
+    function get_fund_p(proj_no) {
+        $("#Fund_P").empty();
+        $("#Bugeno").val('');
+        $("#remain").val('');
+        $("#Bugeno").val('');
+        $("#Fundname").val('');
+        $("#ProjectStartTime").val('');
+        $("#ProjectEndTime").val('');
+        var First_flag = true;
+        for(var i = 0;i<proj_num.length;i++){
+            if(proj_no == proj_num[i]){
+                var select = document.getElementById("Fund_P");
+                var option = document.createElement("option");
+                var name = fund_name[i] + " " + remain[i];
+                option.setAttribute("value",i);
+                option.appendChild(document.createTextNode(name));
+                select.appendChild(option);
+                if(First_flag){
+                    $("#remain").val(remain[i]);
+                    $("#Bugeno").val(num[i]);
+                    $("#Fundname").val(fund_name[i]);
+                    if(start[i] != "NULL"){
+                        var start_date = Convertdate(start[i]);
+                        $("#ProjectStartTime").val(start_date);
+                    }
+                    if(end[i] != "NULL"){
+                        var end_date = Convertdate(end[i]);
+                        $("#ProjectEndTime").val(end_date);
+                    }
+                    First_flag = false;
+                }
+            }
+        }
+        return proj_no;
+    }
+    function Convertdate(old_str){
+        var year =  parseInt(old_str.substr(0,3)) + 1911;
+        var month = old_str.substr(3,2);
+        var date = old_str.substr(5,2);
+        var final_str = year.toString() + '-' + month + '-' + date ;
+        return final_str;
+    }
+</script>
+
+<style>
+    input:invalid {
+        background-color: #E00;
+    }
+</style>
+
+<form method="post" id="insertlabform" class="form-group">
+    <!-- Input and Submit elements -->
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="ApplyItem">申請項目</label>
+                <select id="ApplyItem" name="ApplyItem" class="form-control">
+                    <option selected>加保</option>
+                    <option>退保</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Class">是否為在校生</label>
+                <select id="Is_Nuk" name="Is_Nuk" class="form-control">
+                    <option selected>Yes</option>
+                    <option>No</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID" id="id_text">被保險人學號</label>
+                @if (Convert.ToString(TempData["ismanager"]) == "true")
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentIDSmall" placeholder="輸入被保險人學號" value="">
+                }
+                else if (Convert.ToString(TempData["card"]).Length == 8)
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentIDSmall" placeholder="輸入被保險人學號" value="@TempData["card"]" readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentIDSmall" placeholder="輸入被保險人學號" value="">
+                }
+            <font color="red"><small id="StudentIDSmall" class=""></small></font>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="HiredName">被保險人系級</label>
+                <input type="text" class="form-control" id="pclass" name="pclass" aria-describedby="HiredNameSmall" placeholder="輸入被保險人系級" value="">
+                <font color="red"><small id="pclassSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="HiredName">被保險人姓名</label>
+                <input type="text" class="form-control" id="HiredName" name="HiredName" aria-describedby="HiredNameSmall" placeholder="輸入被保險人姓名" value="">
+                <font color="red"><small id="HiredNameSmall" class=""></small></font>
+</div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="ID">被保險人身分證字號</label>
+                <input type="text" class="form-control" id="ID" name="ID" aria-describedby="IDSmall" placeholder="輸入被保險人身分證字號" value="">
+                <font color="red"><small id="IDSmall" class=""></small></font>
+                    <script language="javascript">
+                        var Salary = document.getElementById('ID');
+                        Salary.addEventListener('input', checkidnt);
+                    </script>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="School">被保險人學校</label>
+                <input type="text" class="form-control" id="SchoolName" name="School" aria-describedby="SchoolSmall" placeholder="輸入被保險人學校/系所" value="">
+                <font color="red"><small id="SchoolSmall" class=""></small></font>
+</div>
+        </div>
+         <div class="col">
+            <div class="form-group">
+                <label for="School">被保險人系所</label>
+                <input type="text" class="form-control" id="SchoolDep" name="School" aria-describedby="SchoolSmall" placeholder="輸入被保險人學校/系所" value="">
+                <font color="red"><small id="SchoolSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="WorkType">被保險人工作類別</label>
+                <select id="WorkType" name="WorkType" class="form-control">
+                    <option selected>兼任助理</option>
+                    <option>臨時工</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Phone">被保險人手機</label>
+                <input type="number" class="form-control" id="Phone" name="Phone" aria-describedby="PhoneSmall" placeholder="輸入被保險人手機" value="">
+                <font color="red"><small id="PhoneSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="Email">被保險人E-mail</label>
+                <input type="email" class="form-control" id="Email" name="Email" aria-describedby="EmailSmall" placeholder="輸入被保險人E-mail" value="">
+                <font color="red"><small id="EmailSmall" class=""></small></font>
+</div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Birthday">被保險人出生日期</label>
+                <input type="date" class="form-control" id="Birthday" name="Birthday" aria-describedby="BirthdaySmall" placeholder="輸入被保險人出生日期" value="" max="" min="">
+                <font color="red"><small id="BirthdaySmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="IsForeign">被保險人國籍</label>
+                <select id="IsForeign" name="IsForeign" class="form-control">
+                    <option selected>本國人</option>
+                    <option>外國人</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <p>被保險人是否有身心障礙</p>
+                <label for="DisabilityRadio">無</label>
+                <input type="radio" id="DisabilityRadio" name="Disability" value="無" checked="checked"><br />
+                <label for="AbilityRadio">有</label>
+                <input type="radio" id="AbilityRadio" name="Disability" value="有">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StartTime">約用起始時間</label>
+                <input type="date" class="form-control" id="StartTime" name="StartTime" aria-describedby="StartTimeSmall" placeholder="輸入起始/退保時間" value="" max="" min="" onchange="getstartyear()">
+                <font color="red"><small id="StartTimeSmall" class=""></small></font>
+                <script language="javascript">
+                    var bookdate = document.getElementById('StartTime');
+                    var currentdate = new Date();
+                    currentdate.setDate(currentdate.getDate() + 5);
+                    bookdate.min = convertToISO(currentdate);
+                    bookdate.placeholder = bookdate.min;
+                    bookdate.addEventListener('input', noStartExceed);
+                </script>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="EndTime">約用結束時間</label>
+                <input type="date" class="form-control" id="EndTime" name="EndTime" aria-describedby="EndTimeSmall" placeholder="輸入結束時間" value="" max="" min="">
+                <font color="red"><small id="EndTimeSmall" class=""></small></font>
+                <script language="javascript">
+                    // 將開始日期的年份處理(結束日期只能選該年)
+                    function getstartyear() {
+                        var start = new Date(document.getElementById('StartTime').value);
+                        var year = start.getFullYear();
+                        if (year % 400 == 0) {
+                            isplus = 1;
+                        }
+                        else if (year % 100 == 0 && year % 400 != 0) {
+                            isplus = 0;
+                        }
+                        else if (year % 4 == 0 && year % 100 != 0) {
+                            isplus = 1;
+                        }
+                        else if (year % 4 != 0) {
+                            isplus = 0;
+                        }
+                        // 擷取結束年
+                        var bookdate = document.getElementById('EndTime');
+                        var currentdate = new Date();
+                        currentdate.setDate(currentdate.getDate() + 5);
+                        bookdate.min = convertToISO(start);
+                        var futuredate = new Date();
+                        // go forward 7 days into the future
+                        futuredate.setDate(365 * (year - futuredate.getFullYear() + 1) + isplus);
+                        bookdate.max = convertToISO(futuredate);
+                        bookdate.addEventListener('input', noEndExceed);
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+    <!--新增-->
+    <div class="form-group">
+        <label for="SelfRetirePercent">自提勞工退休金</label>
+        <select id="SelfRetirePercent" name="SelfRetirePercent" class="form-control">
+            <option selected value="0">0%</option>
+            <option value="1">1%</option>
+            <option value="2">2%</option>
+            <option value="3">3%</option>
+            <option value="4">4%</option>
+            <option value="5">5%</option>
+            <option value="6">6%</option>
+        </select>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="Boss">僱主ID</label>
+                @if (Convert.ToString(TempData["card"]).Length == 4 && Convert.ToString(TempData["ismanager"]) == "false")
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossSmall" placeholder="輸入僱主ID" value="@TempData["card"]" readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossSmall" placeholder="輸入僱主ID" value="">
+                }
+            <font color="red"><small id="BossSmall" class=""></small></font>
+</div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Boss">僱主</label>
+                <input type="text" class="form-control" id="Boss" name="Boss" aria-describedby="BossSmall" placeholder="輸入僱主" value="" readonly="readonly">
+                <font color="red"><small id="BossSmall" class=""></small></font>
+</div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Bossdep">申請單位</label>
+                <select id="Bossdep" name="Bossdep" class="form-control">
+                </select>
+                <font color="red"><small id="BossdepSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-text">
+                <label for="Budgettype">部門預算或者計畫類</label>
+                <select id="Budgettype" name = "Budgettype" class="form-control">
+                    <option value="1">部門預算</option>
+                    <option value="2">計畫類</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="AccountID">會計編號</label>
+                <select id="Proj_No" class="form-control">
+                </select>
+                <font color="red"><small id="AccountIDSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="">經費用途</label>
+                <select id="Fund_P" class="form-control">
+                </select>
+                <font color="red"><small id="" class=""></small></font>
+</div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Bossemail">計畫聯絡人E-mail</label>
+                <input type="text" class="form-control" id="Bossemail" name="Bossemail" aria-describedby="BossemailSmall" placeholder="輸入計畫聯絡人E-mail" value="">
+                <font color="red"><small id="BossemailSmall" class=""></small></font>
+</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="ProjectStartTime" id = "starttext">計畫起始時間</label>
+                <input type="date" class="form-control" id="ProjectStartTime" name="ProjectStartTime" aria-describedby="ProjectStartTimeSmall" placeholder="輸入計畫起始時間" value="" max="" min="" onchange="setstartyear()">
+                <font color="red"><small id="ProjectStartTimeSmall" class=""></small></font>
+                <script language="javascript">
+                    var bookdate = document.getElementById('ProjectStartTime');
+                    bookdate.addEventListener('input', noStartExceed);
+                </script>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="ProjectEndTime" id = "endtext">計畫結束時間</label>
+                <input type="date" class="form-control" id="ProjectEndTime" name="ProjectEndTime" aria-describedby="ProjectEndTimeSmall" placeholder="輸入計畫結束時間" value="" max="" min="">
+                <font color="red"><small id="ProjectEndTimeSmall" class=""></small></font>
+                <script language="javascript">
+                    // 將開始日期的年份處理(結束日期只能選該年)
+                    function setstartyear() {
+                        var Prostart = new Date(document.getElementById('ProjectStartTime').value);
+                        var bookdate = document.getElementById('ProjectEndTime');
+                        bookdate.min = convertToISO(Prostart);
+                        bookdate.addEventListener('input', noEndExceed);
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group" id="SalaryDiv">
+                <label for="Class">薪資類別</label>
+                <select id="Class" name="Class" class="form-control">
+                    <option selected>月薪</option>
+                    <option>日薪</option>
+                    <option>時薪</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group" id="PartSalaryDiv">
+                <label for="PartSalary"></label>
+                <input type="number" class="form-control" id="PartSalary" name="PartSalary" aria-describedby="PartSalarySmall" placeholder="" value="">
+                <font color="red"><small id="PartSalarySmall" class=""></small></font>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group" id="PartDayDiv">
+                <label for="PartDay"></label>
+                <input type="number" class="form-control" id="PartDay" name="PartDay" aria-describedby="PartDaySmall" placeholder="" value="">
+                <font color="red"><small id="PartDaySmall" class=""></small></font>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="Salary">薪水(請填入換算後月薪)</label>
+                <input type="number" class="form-control" id="Salary" name="Salary" aria-describedby="SalarySmall" placeholder="輸入薪水" value="" onchange = "setbudget()">
+                <font color="red"><small id="SalarySmall" class=""></small></font>
+                <script language="javascript">
+                    var Salary = document.getElementById('Salary');
+                    Salary.addEventListener('input', noExceedBudget);
+                </script>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="remain" name="remain" value="0">
+    <input type="hidden" class="form-control" id="School" name="School"  value="">
+    <script language="javascript">
+        // 將開始日期的年份處理(結束日期只能選該年)
+        function setbudget() {
+            var Projectbud = document.getElementById('remain');
+            Projectbud.addEventListener('input', noExceedBudget);
+        }
+    </script>
+    <input type="hidden" id="Fundname" name="Fundname" value="">
+    <input type="hidden" id="Bugeno" name="Bugeno" value="">
+    <input type="hidden" id = "HiredDep" name = "HiredDep" value = "">
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+
+</form>
+<div id="targetDiv"></div>
+
+
+@section scripts
+{
+    <script>
+        $("document").ready(function () {
+            $("#PartSalaryDiv").hide();
+            $("#PartDayDiv").hide();
+            $("#ProjectStartTime").hide();
+            $("#ProjectEndTime").hide();
+            $("#starttext").hide();
+            $("#endtext").hide();
+            var studentid = document.getElementById("StudentID").value;
+            if(studentid != ""){
+                var data = '{"Student_ID": "'+ studentid + '"}';
+                StudentInfo(data);
+            }
+            var bossid = document.getElementById("BossID").value;
+            if(bossid != ""){
+                var data2 = '{"p_UserCard": "'+ bossid + '"}';
+                var temp2 = GetHiredDep(data2);
+                GetBudget(data2,"/api/school/GetDepBudget")
+            }
+        })
+        $("#SalaryDiv").on('change', function () {
+            if ($("#SalaryDiv option:selected").val() == "日薪") {
+                $("#PartSalaryDiv").show();
+                $("#PartSalaryDiv label").text("每日");
+                $("#PartDayDiv").show();
+                $("#PartDayDiv label").text("天數");
+                count_salary();
+            } if ($("#SalaryDiv option:selected").val() == "時薪") {
+                $("#PartSalaryDiv").show();
+                $("#PartSalaryDiv label").text("每小時");
+                $("#PartDayDiv").show();
+                $("#PartDayDiv label").text("天數");
+                count_salary();
+            } if ($("#SalaryDiv option:selected").val() == "月薪") {
+                $("#PartSalary").val("");
+                $("#PartSalaryDiv").hide();
+                $("#PartDay").val("");
+                $("#PartDayDiv").hide();
+            }
+        })
+
+        function count_salary(){
+            if($("#PartSalary").val()!=""&&$("#PartDay").val()!=""){
+                var num1 = $("#PartSalary").val();
+                if($("#SalaryDiv option:selected").val() == "時薪"){
+                    num1 = num1*8;
+                }
+                $("#Salary").val(num1*$("#PartDay").val());
+            }
+        }
+
+        $("#PartSalary").on('change', function () {
+            count_salary();
+        })
+
+        $("#PartDay").on('change', function () {
+            count_salary();
+        })
+
+        function getFormData($form) {
+            var unindexed_array = $form.serializeArray();
+            var indexed_array = {};
+            $.map(unindexed_array, function (n, i) {
+                indexed_array[n['name']] = n['value'];
+            });
+            return indexed_array;
+        }
+
+        $("#StudentID").on('change', function (){
+            var data = '{"Student_ID": "'+ this.value + '"}';
+            var temp = StudentInfo(data);
+        })
+        $("#BossID").on('change', function (){
+            $("#Bossdep").empty();
+            var osel=document.getElementById("Budgettype"); //得到select的ID
+            var opts=osel.getElementsByTagName("option");//得到陣列option
+            opts[0].selected=true;
+            budget_clear();
+            $("#ProjectStartTime").hide();
+            $("#ProjectEndTime").hide();
+            $("#starttext").hide();
+            $("#endtext").hide();
+            var data = '{"p_UserCard": "'+ this.value + '"}';
+            var temp2 = GetHiredDep(data);
+            GetBudget(data,"/api/school/GetDepBudget")
+        })
+        $("#Fund_P").on('change', function (){
+            var temp = ProjectName(this.value);
+        })
+        $("#Proj_No").on('change', function (){
+            var temp = get_fund_p(this.value);
+        })  
+        $("#Is_Nuk").on('change', function (){
+            $("#HiredName").val('');
+            $("#ID").val('');
+            $("#Birthday").val('');
+            $("#pclass").val('');
+            $("#sclass").val('');
+            $("#School").val('');
+            $("#SchoolDep").val('');
+            $("#SchoolName").val('');
+            $("#Email").val('');
+            $("#Phone").val('');
+            $("#StudentID").val('');
+            if(this.value.trim() == "No"){
+                $("#StudentID").val("Null");
+                $("#StudentID").hide();
+                $("#id_text").hide();
+            }
+            else if(this.value.trim() == "Yes"){
+                $("#StudentID").show();
+                $("#id_text").show();
+            }
+        })        
+        $("#Budgettype").on('change', function (){;
+            var el = document.getElementById("BossID").value;
+            var data = '{"p_UserCard": "'+ el + '"}';
+            var temp = this.value;
+            if(temp == "1"){
+                budget_clear();
+                $("#ProjectStartTime").hide();
+                $("#ProjectEndTime").hide();
+                $("#starttext").hide();
+                $("#endtext").hide();
+                GetBudget(data,"/api/school/GetDepBudget")
+            }
+            else{
+                budget_clear();
+                $("#ProjectStartTime").show();
+                $("#ProjectEndTime").show();
+                $("#starttext").show();
+                $("#endtext").show();
+                GetBudget(data,"/api/school/GetProjectBudget")
+            }
+        })
+        $("#SchoolDep").on('change', function (){
+            $("#School").val($("#SchoolName").val() +'/'+ this.value);
+        })
+        $("#SchoolName").on('change', function (){
+            $("#School").val(this.value + '/' +$("#SchoolDep").val());
+        })
+        $("#insertlabform").on('submit', function (e) {
+            e.preventDefault();
+            var $form = $("#insertlabform");
+            var dep = $("#Bossdep").val();
+            $("#HiredDep").val(dep);
+            if($("#StudentID").val().trim() == "Null"){
+                $("#StudentID").val($("#ID").val());
+            }
+            var data = getFormData($form);
+            console.log(data);
+            $.ajax({
+                url: "/api/school",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(data),
+                success: function (result, status) {
+                    console.log(result);
+                    $("#insertlabform input").val('');
+                    $("#targetDiv").append('<div>申請項目:' + result.applyItem + '</div>');
+                    $("#targetDiv").append('<div>被保險人學號:' + result.studentID + '</div>');
+                    $("#targetDiv").append('<div>被保險人姓名:' + result.hiredName + '</div>');
+                    $("#targetDiv").append('<div>被保險人身分證字號:' + result.id + '</div>');
+                    $("#targetDiv").append('<div>被保險人學校/系所:' + result.school + '</div>');
+                    $("#targetDiv").append('<div>被保險人出生日期:' + result.birthday.split("T")[0] + '</div>');
+                    $("#targetDiv").append('<div>被保險人手機:' + result.phone + '</div>');
+                    $("#targetDiv").append('<div>被保險人E-mail:' + result.email + '</div>');
+                    $("#targetDiv").append('<div>被保險人國籍:' + result.isForeign + '</div>');
+                    $("#targetDiv").append('<div>被保險人身心障礙等級:' + result.disability + '</div>');
+                    $("#targetDiv").append('<div>被保險人工作類別:' + result.workType + '</div>');
+                    $("#targetDiv").append('<div>用人單位:' + result.hiredDep + '</div>');
+                    $("#targetDiv").append('<div>僱主:' + result.boss + '</div>');
+                    $("#targetDiv").append('<div>計畫編號:' + result.bugeno + '</div>');
+                    $("#targetDiv").append('<div>起始/退保時間:' + result.startTime.split("T")[0] + '</div>');
+                    $("#targetDiv").append('<div>結束時間:' + result.endTime.split("T")[0] + '</div>');
+                    $("#targetDiv").append('<div>薪資類別:' + result.class + '</div>');
+                    if (result.class.replaceAll(" ","") == "日薪") {
+                        $("#targetDiv").append('<div>每日:' + result.partSalary + '元</div>');
+                        $("#targetDiv").append('<div>天數:' + result.partDay + '天</div>');
+                    } if (result.class.replaceAll(" ","") == "時薪") {
+                        $("#targetDiv").append('<div>每小時:' + result.partSalary + '元</div>');
+                        $("#targetDiv").append('<div>天數:' + result.partDay + '天</div>');
+                    }
+                    $("#targetDiv").append('<div>薪水:' + result.salary + '</div>');
+                },
+                error: function (error) {
+                    console.log(error);
+                    $("small").empty();
+                    if (error.responseJSON.errors.StudentID != null) {
+                        $("#StudentIDSmall").append(error.responseJSON.errors.StudentID);
+                    } if (error.responseJSON.errors.HiredName != null) {
+                        $("#HiredNameSmall").append(error.responseJSON.errors.HiredName);
+                    } if (error.responseJSON.errors.ID != null) {
+                        $("#IDSmall").append(error.responseJSON.errors.ID);
+                    } if (error.responseJSON.errors.HiredDep != null) {
+                        $("#HiredDepSmall").append(error.responseJSON.errors.HiredDep);
+                    } if (error.responseJSON.errors.Birthday != null) {
+                        $("#BirthdaySmall").append(error.responseJSON.errors.Birthday);
+                    } if (error.responseJSON.errors.Phone != null) {
+                        $("#PhoneSmall").append(error.responseJSON.errors.Phone);
+                    } if (error.responseJSON.errors.Email != null) {
+                        $("#EmailSmall").append(error.responseJSON.errors.Email);
+                    } if (error.responseJSON.errors.School != null) {
+                        $("#SchoolSmall").append(error.responseJSON.errors.School);
+                    } if (error.responseJSON.errors.Salary != null) {
+                        $("#SalarySmall").append(error.responseJSON.errors.Salary);
+                    } if (error.responseJSON.errors.Boss != null) {
+                        $("#BossSmall").append(error.responseJSON.errors.Boss);
+                    } if (error.responseJSON.errors.ProjectID != null) {
+                        $("#ProjectIDSmall").append(error.responseJSON.errors.ProjectID);
+                    } if (error.responseJSON.errors.StartTime != null) {
+                        $("#StartTimeSmall").append(error.responseJSON.errors.StartTime);
+                    } if (error.responseJSON.errors.EndTime != null) {
+                        $("#EndTimeSmall").append(error.responseJSON.errors.EndTime);
+                    } if (error.responseJSON.errors.PartSalary != null) {
+                        $("#PartSalarySmall").append(error.responseJSON.errors.PartSalary);
+                    }
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,379 @@
+﻿@{
+    ViewData["Title"] = "管理保單";
+}
+
+<script src="~/js/studentIdCheck.js"></script>
+@* script for checking if the '#StudentID' element is in correct format *@
+
+<form method="post" id="selectlabform" class="form-group">
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID">被保險人學號/身分證字號:</label>
+                @if (Convert.ToString(TempData["card"]).Length == 8)
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value=@TempData["card"] readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value=@ViewData["StudentID"]>
+                }
+                <small id="StudentIDSmall" class="form-text text-muted"></small>
+                <script language="javascript">
+                    var Salary = document.getElementById('StudentID');
+                    Salary.addEventListener('input', checkidnt);
+                    // checkidnt si a funtion from above script
+                </script>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID">雇主ID:</label>
+                @if (Convert.ToString(TempData["card"]).Length == 4 && Convert.ToString(TempData["ismanager"]) == "false")
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossID" placeholder="輸入雇主ID" value=@TempData["card"] readonly="readonly">
+                }
+                else
+                {
+                    <input type="text" class="form-control" id="BossID" name="BossID" aria-describedby="BossID" placeholder="輸入雇主ID" value=@ViewData["TeacherID"] >
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StartTime">Start:</label>
+                <input type="date" class="form-control" id="StartTime" name="StartTime" aria-describedby="StartTime" value="@ViewData["StartTime"]" max="" min="">
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="EndTime">End:</label>
+                <input type="date" class="form-control" id="EndTime" name="EndTime" aria-describedby="EndTime" value="@ViewData["EndTime"]" max="" min="">
+            </div>
+        </div>
+    </div>
+    @if (Convert.ToString(TempData["ismanager"]) == "true")
+    {
+        <div class="form-group">
+            <label for="CheckDate">Check:</label>
+        <input type="date" class="form-control" id="CheckDate" name="CheckDate" aria-describedby="EndTime" placeholder="輸入保單檢查日期" value="@ViewData["CheckTime"]" max="" min="">
+        </div>
+        <div class="checkinc">
+            <label><input class="check-input" type="radio" id="add" name="StartEndCheck" value="add" checked>加保</label>
+            <label><input class="check-input" type="radio" id="quit" name="StartEndCheck" value="quit">退保</label>
+        </div>
+        <br />
+    }
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+    </form>
+    <div class = "row">
+        <div class="col" id = "selecsection">
+        </div>
+    </div>
+<div id="targetDiv">
+    <table class="table">
+        <thead id="tblhead">
+        </thead>
+        <tbody id="tblbody">
+        </tbody>
+    </table>
+</div>
+@section scripts{
+    <script>
+        $("document").ready(function () {
+        });
+        $("#selectlabform").on('submit', function (e) {
+            e.preventDefault();
+            $("#selecsection").empty();
+            if (document.querySelector('input[name="StartEndCheck"]:checked').value == "add") {
+                add_ins();
+            }
+            else {
+                quit_ins();
+            }
+            $("#selecsection").append(transport_select);
+            add_ins();
+        });
+        function add_ins(){
+            var data = $("#selectlabform").serialize();
+            var array = [];
+            console.log(data);
+            $.ajax({
+                url: "/api/school/InsuranceFeePayment",
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                data: data,
+                success: function (result, status) {
+                    console.log(result);
+                    //$("#selectlabform input").val('');
+                    $("#tblhead").empty();
+                    $("#tblbody").empty();
+                    if (result != null) {
+                        var tablehead = "<tr>"
+                            + "<th colspan='2'>保險證號</th>"
+                            + "<th><input type='text' id='laborID' name='laborID' placeholder='輸入保險證號' value=''></th>"
+                            + "<th colspan='2'>輸入保險證號檢查碼</th>"
+                            + "<th><input type='text' id='laborcheck' name='laborcheck' placeholder='輸入保險證號檢查碼' value=''></th>"
+                            + "<tr>"
+                            + "<th>異動別</th>"
+                            + "<th>開始日期</th>"
+                            + "<th>結束日期</th>"
+                            + "<th>被保險人外籍</th>"
+                            + "<th>被保險人姓名</th>"
+                            + "<th>被保險人身分證號</th>"
+                            + "<th>被保險人出生日期</th>"                           
+                            + "</tr>";
+                        $("#tblhead").append(tablehead);
+                        for (var info in result) {
+                            var Item = result[info].applyItem;
+                            Item = "4";
+                            var Isforeign = result[info].isForeign;
+                            var SelfRetirePercent = result[info].selfRetirePercent;
+                            var Salary = result[info].salary;
+                            var special_identity = "";
+                            if(Isforeign.includes("本國人")){
+                                Isforeign = "";
+                            }
+                            else{
+                                Isforeign = "Y";
+                            }
+                            array.push([Item,"1",Isforeign,result[info].hiredname,result[info].id,result[info].birthday.split("T")[0],Salary,special_identity,SelfRetirePercent]);
+                            var tablebody = "<tr id = '"+info +"'>"
+                                + "<td>" + Item + "</td>"
+                                + "<td>" + result[info].paymentStartTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].paymentEndTime.split("T")[0] + "</td>"                              
+                                + "<td>" + Isforeign + "</td>"
+                                + "<td>" + result[info].hiredname + "</td>"
+                                + "<td>" + result[info].id + "</td>"
+                                + "<td>" + result[info].birthday.split("T")[0] + "</td>"
+                                + "</tr>";                              
+                            $("#tblbody").append(tablebody);
+                        } 
+                        let btn = document.createElement("button");
+                        btn.innerHTML = "下載txt";
+                        btn.className = "btn btn-primary";
+                        btn.type = "button";
+                        btn.onclick = function(){submit_add(array);};
+                        //var button = "<button type='button' onclick='submit_add("+result.length+")' name='submitcsv' id='submitcsv' class='btn btn-primary'>下載txt</button>"
+                        $("#tblbody").append(btn); 
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+        function quit_ins(){
+            var data = $("#selectlabform").serialize();
+            var array = [];
+            $.ajax({
+                url: "/api/school/InsuranceFeePayment",
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                data: data,
+                success: function (result, status) {
+                    console.log(result);
+                    //$("#selectlabform input").val('');
+                    $("#tblhead").empty();
+                    $("#tblbody").empty();
+                    if (result != null) {
+                        var tablehead = "<tr>"
+                            + "<th colspan='2'>勞工保險證號</th>"
+                            + "<th><input type='text' id='laborID' name='laborID' placeholder='輸入勞工保險證號' value=''></th>"
+                            + "<th colspan='2'>輸入勞工保險證號檢查碼</th>"
+                            + "<th><input type='text' id='laborcheck' name='laborcheck' placeholder='輸入勞工保險證號檢查碼' value=''></th>"
+                            + "<tr>"
+                            + "<th>異動別</th>"
+                            + "<th>開始日期</th>"
+                            + "<th>結束日期</th>"
+                            + "<th>外籍</th>"
+                            + "<th>姓名</th>"
+                            + "<th>身分證號</th>"
+                            + "<th>居留證統一證號</th>"
+                            + "<th>出生日期</th>"
+                            + "</tr>";
+                        $("#tblhead").append(tablehead);
+                        for (var info in result) {
+                            var Item = result[info].applyItem;
+                            Item = "2";
+                            var Isforeign = result[info].isForeign;
+                            var native_id = "";
+                            var foreign_id = "";
+                            if(Isforeign.includes("本國人")){
+                                Isforeign = "";
+                                native_id = result[info].id;
+                            }
+                            else{
+                                Isforeign = "Y";
+                                foreign_id = result[info].id;
+                            }
+                            console.log(result[info].hiredName);
+                            array.push([Item,Isforeign,result[info].hiredname,native_id,foreign_id,result[info].birthday.split("T")[0]]);
+                            var tablebody = "<tr id = '"+info +"'>"
+                                + "<td>" + Item + "</td>"
+                                + "<td>" + result[info].paymentStartTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].paymentEndTime.split("T")[0] + "</td>"      
+                                + "<td>" + Isforeign + "</td>"
+                                + "<td>" + result[info].hiredname + "</td>"
+                                + "<td>" + native_id + "</td>"
+                                + "<td>" + foreign_id + "</td>"
+                                + "<td>" + result[info].birthday.split("T")[0] + "</td>"
+                                + "</tr>";                              
+                            $("#tblbody").append(tablebody)
+                        } 
+                        let btn = document.createElement("button");
+                        btn.innerHTML = "下載txt";
+                        btn.className = "btn btn-primary";
+                        btn.type = "button";
+                        btn.onclick = function(){submit_quit(array);};
+                        //var button = "<button type='button' onclick='submit_quit("+result.length+")' name='submitcsv' id='submitcsv' class='btn btn-primary'>下載txt</button>"
+                        $("#tblbody").append(btn); 
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+        function submit_quit(array){
+            //var form = $("#downloadcsvform").serialize();
+            //console.log(form)
+            //console.log(array);
+            var data = []
+            var el = document.getElementById("laborID").value;
+            console.log(el);
+            var insurance_num = el;
+            el = document.getElementById("laborcheck").value;
+            var insurance_check = el;
+            for(var i = 0;i < array.length;i++){
+                temp = {"change_num":array[i][0].trim(),
+                        "insurance_num":insurance_num.trim(),
+                        "insurance_check":insurance_check.trim(),
+                        "country":array[i][1].trim(),
+                        "name":array[i][2].toString().trim(),
+                        "id":array[i][4].toString().trim(),
+                        "foreign_id":array[i][3].toString().trim(),
+                        "birthday":Convertdate(array[i][5].toString().trim())};
+                data.push(temp);
+            }
+            if(data.length!=0){
+                var _Object = {ExportExcelList:data};
+                console.log(_Object);
+                $.ajax({
+                    url: "/api/school/ExportTotxt_quit",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify(_Object),
+                    success: function (result, status) {
+                        console.log("Sucess");
+                        var bytes = Base64ToBytes(result);
+                        var blob = new Blob([bytes], { type: "application/octetstream" });
+ 
+                        //Check the Browser type and download the File.
+                        var isIE = false || !!document.documentMode;
+                        var fileName = "output.txt";
+                        if (isIE) {
+                            window.navigator.msSaveBlob(blob, fileName);
+                        } else {
+                            var url = window.URL || window.webkitURL;
+                            link = url.createObjectURL(blob);
+                            var a = $("<a />");
+                            a.attr("download", fileName);
+                            a.attr("href", link);
+                            $("body").append(a);
+                            a[0].click();
+                            $("body").remove(a);
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        }
+        function submit_add(array){
+            //var form = $("#downloadcsvform").serialize();
+            //console.log(form)
+            console.log(array.length);
+            var data = []
+            var el = document.getElementById("laborID").value;
+            console.log(el);
+            var insurance_num = el;
+            el = document.getElementById("laborcheck").value;
+            var insurance_check = el;
+            for(var i = 0;i < array.length;i++){
+                temp = {"change_num":array[i][0].toString().trim(),
+                        "format_num":array[i][1].toString().trim(),
+                        "insurance_num":insurance_num.trim(),
+                        "insurance_check":insurance_check.trim(),
+                        "country":array[i][2].toString().trim(),
+                        "name":array[i][3].toString().trim(),
+                        "id":array[i][4].toString().trim(),
+                        "birthday":array[i][5].toString().trim(),
+                        "salary_mounth":array[i][6].toString().trim(),
+                        "special_identity":array[i][7].toString().trim(),
+                        "ins_special_identity":"",
+                        "condition":"",
+                        "sex":"",
+                        "submit_identity":"",
+                        "hired_percent":"",
+                        "self_percent":array[i][8].toString().trim(),
+                        "quit_date":""};
+                data.push(temp);
+            }
+            if(data.length!=0){
+                var _Object = {ExportExcelList:data};
+                console.log(_Object);
+                $.ajax({
+                    url: "/api/school/ExportTotxt_add",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify(_Object),
+                    success: function (result, status) {
+                        console.log("Sucess");
+                        var bytes = Base64ToBytes(result);
+                        var blob = new Blob([bytes], { type: "application/octetstream" });
+ 
+                        //Check the Browser type and download the File.
+                        var isIE = false || !!document.documentMode;
+                        var fileName = "output.txt";
+                        if (isIE) {
+                            window.navigator.msSaveBlob(blob, fileName);
+                        } else {
+                            var url = window.URL || window.webkitURL;
+                            link = url.createObjectURL(blob);
+                            var a = $("<a />");
+                            a.attr("download", fileName);
+                            a.attr("href", link);
+                            $("body").append(a);
+                            a[0].click();
+                            $("body").remove(a);
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        }
+        function Base64ToBytes(base64) {
+            var s = window.atob(base64);
+            var bytes = new Uint8Array(s.length);
+            for (var i = 0; i < s.length; i++) {
+                bytes[i] = s.charCodeAt(i);
+            }
+            return bytes;
+        };
+        function Convertdate(old_str){
+            var year =  (parseInt(old_str.substr(0,4)) - 1911).toString();
+            console.log(year.length);
+            var year_str = (year.length == 2) ? ('0' + year ): year;
+            var month = old_str.substr(5,2);
+            var date = old_str.substr(8,2);
+            var final_str = year_str + month + date ;
+            return final_str;
+        }
+    </script>
+}

@@ -1,0 +1,187 @@
+﻿@{
+    ViewData["Title"] = "PDF預覽";
+}
+
+<html>
+<body>
+    <form method="post" id="downloadcsvform" class="form-group">
+        <div id="targetDiv">
+            <table class="table">
+                <thead id="tblhead">
+                    <tr>
+                    <th>申請編號</th>
+                    <th>被保險人學號</th>
+                    <th>被保險人姓名</th>
+                    <th>計畫編號</th>
+                    <th>起始/退保時間</th>
+                    <th>結束時間</th>
+                    <th>審核狀態</th>
+                    </tr>
+                </thead>
+                <tbody id="tblbody">
+                    @foreach (var item in ViewData["list_result"] as List<LabFormSearch>)
+                   {
+                       <tr>
+                       <td><a href='/Home/Detail?No=@item.No'>@item.No</a></td>
+                       <td>@item.StudentID</td>
+                       <td>@item.HiredName</td>
+                       <td>@item.Bugeno</td>
+                       <td>@item.StartTime.Value.ToString("yyyy/MM/dd")</td>
+                       <td>@item.EndTime.Value.ToString("yyyy/MM/dd")</td>
+                       <td>@item.FormStatus</td>
+                       </tr>
+                   }
+                </tbody>
+            </table>
+        </div>
+    </form>
+    <div style="font-family:DFKai-sb;">
+        <div align="center"><font size="5">國立高雄大學獎助生、兼任助理及臨時工申請表</font></div>
+        <table style="undefined; table-layout: fixed; width: 506px" border="1" align="center">
+            <colgroup>
+                <col style="width: 72px" />
+                <col style="width: 144px" />
+                <col style="width: 270px" />
+                <col style="width: 144px" />
+                <col style="width: 270px" />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td colspan="2" align="center">申請事項</td>
+                    <td>@ViewData["applyItem"]</td>
+                    <td align="center">申請單號</td>
+                    <td>@ViewData["No"]</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">聘僱類別</td>
+                    <td colspan="3">@ViewData["workType"]</td>
+
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">聘僱單位</td>
+                    <td>@ViewData["hiredDep"]</td>
+                    <td align="center">聘僱人</td>
+                    <td>@ViewData["hiredName"]</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">經費來源</td>
+                    <td>@ViewData["type"]</td>
+                    <td align="center">經費用途</td>
+                    <td>@ViewData["sourcetype"]00 - @ViewData["fundname"]</td>
+                </tr>
+                <tr>
+                    <td rowspan="3" align="center">計畫資料</td>
+                    <td align="center">委託機構</td>
+                    <td>@ViewData["hiredDep"]</td>
+                    <td align="center">會計編號</td>
+                    <td>@ViewData["ProjNum"]</td>
+                </tr>
+                <tr>
+                    <td align="center">計畫名稱</td>
+                    <td>@ViewData["bugename"]</td>
+                    <td align="center">計畫編號</td>
+                    <td>@ViewData["bugeno"]</td>
+                </tr>
+                <tr>
+                    <td align="center">執行期間</td>
+                    <td colspan="3">@ViewData["bugestarttime"]<br>@ViewData["bugeendtime"]</td>
+                </tr>
+                <tr>
+                    <td rowspan="8" align="center">聘用人員資料</td>
+                    <td align="center">學號/編號</td>
+                    <td>@ViewData["student_id"]</td>
+                    <td align="center">姓名</td>
+                    <td>@ViewData["hiredName"]</td>
+                </tr>
+                <tr>
+                    <td align="center">就讀學校</td>
+                    <td>@ViewData["SchoolName"]</td>
+                    <td align="center">系所</td>
+                    <td>@ViewData["studentDep"]</td>
+                </tr>
+                <tr>
+                    <td align="center">身分證字號</td>
+                    <td>@ViewData["id"]</td>
+                    <td align="center">生日</td>
+                    <td>@ViewData["birthday"]</td>
+                </tr>
+                <tr>
+                    <td align="center">手機號碼</td>
+                    <td>@ViewData["phone"]</td>
+                    <td align="center">級別</td>
+                    <td>@ViewData["level"]</td>
+                </tr>
+                <tr>
+                    <td align="center">聘用期間</td>
+                    <td colspan="3">自 @ViewData["startTime"]起<br>至 @ViewData["endTime"]止</td>
+                </tr>
+                <tr>
+                    <td align="center">獎助金/工作酬金</td>
+                    <td></td>
+                    <td align="center">投保類型</td>
+                    <td>@ViewData["insuranceType"]</td>
+                </tr>
+                <tr>
+                    <td align="center">科技部計畫人員請勾選(其他人員免填)</td>
+                    <td colspan="3"></td>
+                </tr>
+                <tr>
+                    <td align="center">是否為身心障礙人員</td>
+                    <td colspan="3"></td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">應備資料檢核</td>
+                    <td colspan="3">
+                        <font size="1">
+                        A.關係型態確認單 B.學生證正反影本(加蓋當學期註冊章) C.他校同意書(外校學生須檢附,本
+                        校學生免附) D.勞工保險、勞退金申請表 E.契約書一式3份 F.身分證正反影本(或居留證及工
+                        作證影本) G.計畫核定清單或經費表 H.原核定獎助生、兼任助理及臨時工申請表影本
+                        新聘 ※勞僱型(在學生): ABCDEFG ※勞僱型(非在學生): DEFG
+                        </font>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">約用人員<br>簽名或蓋章</td>
+                    <td colspan="3"></td>
+                </tr>
+            </tbody>
+        </table>
+        <table style="undefined; table-layout: fixed; width: 506px" border="1" align="center">
+            <colgroup>
+                <col style="width: 300px" />
+                <col style="width: 300px" />
+                <col style="width: 300px" />
+            </colgroup>
+            <tr>
+                <td colspan="3" align="center" align="center">會簽各單位之順序</td>
+            </tr>
+            <tr>
+                <td align="center">(1)計畫主持人</td>
+                <td align="center">(2)計畫執行單位主管</td>
+                <td align="center">(3)人事室<br><font size="1">(如係本校編制內、校聘人員或計畫專任人員兼任，請會辦人事室)</font></td>
+            </tr>
+            <tr>
+                <td>&emsp;<br>&emsp;</td>
+                <td>&emsp;<br>&emsp;</td>
+                <td>&emsp;<br>&emsp;</td>
+            </tr>
+            <tr>
+                <td align="center">(4)業管單位</td>
+                <td align="center">(5)人事室<br><font size="1">(勞保勞退)</font></td>
+                <td align="center">(6)校長或授權人</td>
+            </tr>
+            <tr>
+                <td>&emsp;<br>&emsp;</td>
+                <td>&emsp;<br>&emsp;</td>
+                <td>&emsp;<br>&emsp;</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
+<form id="downloadempdf" action="/Home/ExportToPDF" method="POST">
+    <input type = "hidden" id = "hiredno" name = "No" value = @ViewData["No"]>
+    <input type = "hidden" id = "url" name = "url" value = "http://140.127.230.71:80/Home/Employment?No=">
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">下載聘單</button>
+</form>
+

@@ -1,0 +1,86 @@
+﻿@{
+    ViewData["Title"] = "審核保單";
+}
+
+<script src="~/js/studentIdCheck.js"></script>
+@* script for checking if the '#StudentID' element is in correct format *@
+
+<form method="post" id="selectlabform" class="form-group">
+    <div class="form-group">
+        <label for="StudentID">被保險人學號:</label>
+        <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value="">
+        <small id="StudentIDSmall" class="form-text text-muted"></small>
+        <script language="javascript">
+            var Salary = document.getElementById('StudentID');
+            Salary.addEventListener('input', checkidnt);
+            // checkidnt si a funtion from above script
+        </script>
+    </div>
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+</form>
+
+<div id="targetDiv">
+    <table class="table">
+        <thead id="tblhead"></thead>
+        <tbody id="tblbody"></tbody>
+    </table>
+</div>
+
+@section scripts
+{
+    <script>
+        $("document").ready(function () {
+            $.ajax({
+                url: "/api/school/StudentID",
+                type: "GET",
+                success: function (result, status) {
+                    if (result != null) {
+                        var tablehead = "<tr>"
+                            + "<th>被保險人學號</th>"
+                            //+ "<th>被保險人姓名</th>"
+                            //+ "<th>被保險人學校/系所</th>"
+                            + "</tr>";
+                        $("#tblhead").append(tablehead);
+                        for(var info in result){
+                            var tablebody = "<tr>"
+                                + "<td><a href='/Home/InsuranceFeeManage?StudentID=" + result[info].studentID + "'>" + result[info].studentID + "</a></td>"
+                                //+ "<td>" + result[info].hiredName + "</td>"
+                                //+ "<td>" + result[info].school + "</td>"
+                                + "</tr>";
+                            $("#tblbody").append(tablebody);
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        });
+
+        $("#selectlabform").on('submit', function (e) {
+            e.preventDefault();
+            studentID = $("#StudentID").val();
+            var url = "/api/school/StudentID/"+studentID;
+            $.ajax({
+                url: url,
+                type: "GET",
+                success: function (result, status) {
+                    $("#tblbody").empty();
+                    if (result != null) {
+                        for(var info in result){
+                            var tablebody = "<tr>"
+                                + "<td><a href='/Home/InsuranceFeeManage?StudentID=" + result[info].studentID + "'>" + result[info].studentID + "</a></td>"
+                                //+ "<td>" + result[info].hiredName + "</td>"
+                                //+ "<td>" + result[info].school + "</td>"
+                                + "</tr>";
+                            $("#tblbody").append(tablebody);
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        });
+    </script>
+}

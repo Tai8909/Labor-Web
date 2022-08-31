@@ -1,0 +1,119 @@
+﻿@{
+    ViewData["Title"] = "管理保單";
+}
+
+<script src="~/js/studentIdCheck.js"></script>
+@* script for checking if the '#StudentID' element is in correct format *@
+
+<form method="post" id="selectlabform" class="form-group">
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StudentID">被保險人學號/身分證字號:</label>
+                <input type="text" class="form-control" id="StudentID" name="StudentID" aria-describedby="StudentID" placeholder="輸入被保險人學號" value="">
+                <small id="StudentIDSmall" class="form-text text-muted"></small>
+                <script language="javascript">
+                    var Salary = document.getElementById('StudentID');
+                    Salary.addEventListener('input', checkidnt);
+                    // checkidnt si a funtion from above script
+                </script>
+            </div>
+        </div>
+        @*
+        <div class="col">
+            <div class="form-group">
+                <label for="Bugeno">計畫編號:</label>
+                <input type="text" class="form-control" id="Bugeno" name="Bugeno" aria-describedby="Bugeno" placeholder="輸入計畫編號" value="">
+            </div>
+        </div>
+        *@
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="FormStatus">審核狀態:</label>
+                <select id="FormStatus" name="FormStatus" class="form-control">
+                    <option value="">請選擇審核狀態</option>
+                    <option value="審核中">審核中</option>
+                    <option value="審核通過">審核通過</option>
+                    <option value="審核失敗">審核失敗</option>
+                </select>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="CheckDate">Check:</label>
+                <input type="date" class="form-control" id="CheckDate" name="CheckDate" aria-describedby="EndTime" placeholder="輸入保單檢查日期" value="" max="" min="">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label for="StartTime">Start:</label>
+                <input type="date" class="form-control" id="StartTime" name="StartTime" aria-describedby="StartTime" placeholder="輸入開始日期" value="" max="" min="">
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label for="EndTime">End:</label>
+                <input type="date" class="form-control" id="EndTime" name="EndTime" aria-describedby="EndTime" placeholder="輸入結束日期" value="" max="" min="">
+            </div>
+        </div>
+    </div>
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">確定</button>
+</form>
+<div id="targetDiv">
+    <table class="table">
+        <thead id="tblhead"></thead>
+        <tbody id="tblbody"></tbody>
+    </table>
+</div>
+
+@section scripts
+{
+    <script>
+        $("#selectlabform").on('submit',function (e) {
+            e.preventDefault();
+            var data = $("#selectlabform").serialize();
+            $.ajax({
+                url: "/api/school",
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                data: data,
+                success: function (result, status) {
+                    $("#selectlabform input").val('');
+                    $("#tblhead").empty();
+                    $("#tblbody").empty();
+                    if (result != null) {
+                        var tablehead = "<tr>"
+                            + "<th>申請編號</th>"
+                            + "<th>被保險人學號</th>"
+                            + "<th>被保險人姓名</th>"
+                            + "<th>計畫編號</th>"
+                            + "<th>起始/退保時間</th>"
+                            + "<th>結束時間</th>"
+                            + "<th>審核狀態</th>"
+                            + "</tr>";
+                        $("#tblhead").append(tablehead);
+                        for(var info in result){
+                            var tablebody = "<tr>"
+                                + "<td>" + "<a href='/Home/Update?No="+result[info].no+"'>" + result[info].no + "</a></td>"
+                                + "<td>" + result[info].studentID + "</td>"
+                                + "<td>" + result[info].hiredName + "</td>"
+                                + "<td>" + result[info].bugeno + "</td>"
+                                + "<td>" + result[info].startTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].endTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].formStatus + "</td>"
+                                + "</tr>";
+                            $("#tblbody").append(tablebody);
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log("error");
+                }
+            });
+        });
+    </script>
+}

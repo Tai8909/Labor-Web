@@ -1,0 +1,54 @@
+﻿@{
+    ViewData["Title"] = "審核保單";
+}
+
+<div id="targetDiv">
+    <table class="table">
+        <thead id="tblhead"></thead>
+        <tbody id="tblbody"></tbody>
+    </table>
+</div>
+
+@section scripts
+{
+    <script>
+        $("document").ready(function () {
+            var data = "FormStatus=審核中";
+            $.ajax({
+                url: "/api/school",
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                data: data,
+                success: function (result, status) {
+                    if (result != null) {
+                        var tablehead = "<tr>"
+                            + "<th>申請編號</th>"
+                            + "<th>被保險人學號</th>"
+                            + "<th>被保險人姓名</th>"
+                            + "<th>計畫編號</th>"
+                            + "<th>起始/退保時間</th>"
+                            + "<th>結束時間</th>"
+                            + "<th>審核狀態</th>"
+                            + "</tr>";
+                        $("#tblhead").append(tablehead);
+                        for(var info in result){
+                            var tablebody = "<tr>"
+                                + "<td>" + "<a href='/Home/Alter?No="+result[info].no+"'>" + result[info].no + "</a></td>"
+                                + "<td>" + result[info].studentID + "</td>"
+                                + "<td>" + result[info].hiredName + "</td>"
+                                + "<td>" + result[info].bugeno + "</td>"
+                                + "<td>" + result[info].startTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].endTime.split("T")[0] + "</td>"
+                                + "<td>" + result[info].formStatus + "</td>"
+                                + "</tr>";
+                            $("#tblbody").append(tablebody);
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log("error");
+                }
+            });
+        });
+    </script>
+}

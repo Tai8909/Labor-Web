@@ -1,0 +1,44 @@
+﻿@model SignIn
+
+<h2>登入</h2>
+<!--https://aca.nuk.edu.tw/webauth/check.asp-->
+<form id="login" action="Security/Loginto" method="get" onsubmit="return checkForm()">
+    <table align="center">
+        <tr>
+            <td class="right"><label asp-for="UserName"></label> :</td>
+            <td class="left"><input type="text" id="Account" name="a" @*required*@ /></td>
+        </tr>
+        <tr>
+            <td class="right"><label asp-for="Password"></label> :</td>
+            <td class="left">
+                <input type="password" id="Password" @*required*@>
+                <input type="hidden" id="Password_md5" name="p">
+                <input type="hidden" id="id" name="id" value="W000021">
+            </td>
+        </tr>
+        <!--
+    <tr>
+        <td class="right"><label asp-for="RememberMe"></label> :</td>
+        <td class="left"><input type="checkbox" asp-for="RememberMe" /></td>
+    </tr>
+    -->
+        <tr>
+            <td colspan="2" align="center">
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </td>
+        </tr>
+    </table>
+    <!--<div asp-validation-summary="All" class="message"></div>-->
+</form>
+<script src="https://cdn.bootcss.com/blueimp-md5/1.1.0/js/md5.js"></script>
+<script>
+    function checkForm() {
+        var pwd = document.getElementById('Password');
+        var pwd_md5 = document.getElementById('Password_md5');
+        pwd_md5.value = md5(pwd.value);
+        return true;
+    }
+</script>
+
+
+

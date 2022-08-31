@@ -1,0 +1,144 @@
+﻿@{
+    ViewData["Title"] = "PDF預覽";
+    Layout = null;
+}
+<html>
+<head>
+    </head>
+<body>
+    <div style="font-family:DFKai-sb;">
+        <div align="center"><font size="5">國立高雄大學研究計畫兼任助理及臨時工勞工保險、勞退金申請表</font></div>
+        <table style="undefined; table-layout: fixed; width: 506px" border="1" align="center">
+            <colgroup>
+                <col style="width: 72px" />
+                <col style="width: 144px" />
+                <col style="width: 270px" />
+                <col style="width: 144px" />
+                <col style="width: 270px" />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td colspan="2" align="center">申請項目</td>
+                    <td colspan="3">@ViewData["applyItem"]</td>
+                </tr>
+                <tr>
+                    <td rowspan="7" align="center">被保險人資料</td>
+                    <td align="center">姓名</td>
+                    <td>@ViewData["hiredName"]</td>
+                    <td align="center">身分證資料</td>
+                    <td>@ViewData["id"]</td>
+                </tr>
+                <tr>
+                    <td align="center">用人單位</td>
+                    <td>@ViewData["hiredDep"]</td>
+                    <td align="center">出生日期</td>
+                    <td>@ViewData["birthday"]</td>
+                </tr>
+                <tr>
+                    <td align="center">聘僱方式</td>
+                    <td>@ViewData["workType"]</td>
+                    <td align="center">手機</td>
+                    <td>@ViewData["phone"]</td>
+                </tr>
+                <tr>
+                    <td align="center">E-mail</td>
+                    <td colspan="3">@ViewData["email"]</td>
+                </tr>
+                <tr>
+                    <td align="center">約用期間</td>
+                    <td>自 @ViewData["startTime"]起<br>至 @ViewData["endTime"]止</td>
+                    <td align="center">投保類型</td>
+                    <td>@ViewData["insuranceType"]</td>
+                </tr>
+                <tr>
+                    <td align="center">薪資</td>
+                    <td colspan="3">
+                        @ViewData["salarystring"]
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center">是否自提<br />勞工退休金</td>
+                    <td colspan="3">@ViewData["selfRetirePercent"]</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td rowspan="4" align="center">計畫資料</td>
+                    <td rowspan="2" align="center">委託機構</td>
+                    <td rowspan="2">@ViewData["Boss_dep"]</td>
+                    <td align="center">計畫編號</td>
+                    <td>@ViewData["ProjNum"]</td>
+                </tr>
+                <tr>
+                    <td align="center">會計編號</td>
+                    <td>@ViewData["bugeno"]</td>
+                </tr>
+                <tr>
+                    <td align="center">計畫名稱</td>
+                    <td colspan="3">@ViewData["bugename"]</td>
+                </tr>
+                <tr>
+                    <td align="center">執行期間</td>
+                    <td>@ViewData["bugestarttime"]<br>@ViewData["bugeendtime"]</br></td>
+                    <td align="center">聯絡人<br>E-mail</td>
+                    <td>@ViewData["boss_email"]</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td colspan="2" align="center">說明</td>
+                    <td colspan="3">
+                        <font>
+                            <div style="letter-spacing:-1px;">
+                                一、 應檢附文件：(一)身分證影本(本國人)或居留證影本及工作許可證(外籍人士)(二)「國立高雄大學計畫兼任助理及臨時工申請表」影本<br>
+                                二、 支領月薪者按月投保，退保時送退保申請單，<u>支領日薪及時薪者按日投保，請於每個工作日填寫一張加保單及一份退保單(例如 104 年 12 月預計工作天為 12 月 4、11、18、25 日共 4 天，則需分別填寫 4 張加保單及 4 張退保單)</u>。按日投保者可改以按月投保。<br>
+                                三、 為確保被保險人權益，請於聘僱起始日三天前送本校至總務處事務組辦理加保相關事宜。如於到職到始辦理加保者，以申請表送達總務處收件當日辦理投保(依勞工保險條例規定，勞保不得追溯加保)。<br><b>
+                                    四、 如聘僱期間中途離職或聘僱期限屆滿不再續聘者，應於離職前三天至總務處事務組辦理退保手續。如未辦理退保導致產生相關費用，由各用人單位自行負責。
+                                </b><br>
+                                五、 符合健保投保資格者如要加入健保，請另填健保加保申請表並檢附相關聘僱申請表、身分證明文件影本至總務處事務組辦理。<br>
+                                六、 其於依本校「國立高雄大學學生兼任助理學習與勞動權益保障處理辦法」及相關規定辦理。
+                            </div>
+                        </font>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table style="undefined; table-layout: fixed; width: 506px" border="1" align="center">
+            <colgroup>
+                <col style="width: 450px" />
+                <col style="width: 450px" />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td>
+                        <font size="2">
+                            被保險人簽章<br><br><br>
+                            &emsp;&emsp;年    月    日
+                        </font>
+                    </td>
+                    <td>
+                        <font size="2">
+                            計畫主持人簽章<br><br>
+                            <br>
+                            &emsp;&emsp;年    月    日
+                        </font>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" colspan="2">
+                        遞交人事室收件紀錄
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" colspan="2">
+                        <br>
+                        收件日期：_________________ 收件人核章：&emsp;&emsp;&emsp;
+                        <br>
+                        <br>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

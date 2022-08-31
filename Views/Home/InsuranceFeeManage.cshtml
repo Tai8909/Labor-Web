@@ -1,0 +1,419 @@
+﻿@{
+    ViewData["Title"] = "審核保單";
+}
+
+<script language="javascript">
+const { data } = require("jquery");
+
+    function radiochange(e){
+        var tid = e.id.split("_")[1];
+        var t = tid.replace("o"," of ")
+        var startTime = document.getElementById(tid).getElementsByTagName("td")[3].innerHTML;
+        var endTime = document.getElementById(tid).getElementsByTagName("td")[4].innerHTML;
+        var start = startTime.split("-");
+        var end = endTime.split("-");
+        if(parseInt(end[1])-parseInt(start[1])!=0){
+            var num = parseInt(end[1])-parseInt(start[1])+1;
+            if(e.value=="separate"){
+                var min = new Date(start[0],parseInt(end[1]),1);
+                for(i=num ; i>0 ; i--){
+                    var newtbody = "<tr id='"+tid+"-"+i+"' style='background-color:#87CEFA'>"
+                                + "<td></td>"
+                                + "<td>"+t+"-"+i+"</td>"
+                                + "<td>" + document.getElementById(tid).getElementsByTagName("td")[2].innerHTML + "</td>";
+                    min.setMonth(min.getMonth()-1);
+                    var max = new Date(end[0],parseInt(end[1])-num+i,1);
+                    max.setDate(max.getDate()-1);
+                    if(i==1){
+                        newtbody += "<td><input type='date' id='starttime_"+tid+"-"+i+"' name='starttime_"+tid+"-"+i+"' value='"+startTime+"' min='"+startTime+"' max='"+startTime+"'></td>";
+                    }else if(i==num){
+                        newtbody += "<td><input type='date' id='starttime_"+tid+"-"+i+"' name='starttime_"+tid+"-"+i+"' value='"+convertToISO(min)+"' min='"+convertToISO(min)+"' max='"+endTime+"'></td>";
+                    }else{
+                        newtbody += "<td><input type='date' id='starttime_"+tid+"-"+i+"' name='starttime_"+tid+"-"+i+"' value='"+convertToISO(min)+"' min='"+convertToISO(min)+"' max='"+convertToISO(max)+"' onchange='startchange(this)'></td>";
+                    }
+
+                    if(i==num){
+                        newtbody += "<td><input type='date' id='endtime_"+tid+"-"+i+"' name='endtime_"+tid+"-"+i+"' value='"+endTime+"' min='"+endTime+"' max='"+endTime+"'></td>";
+                    }else if(i==1){
+                        newtbody += "<td><input type='date' id='endtime_"+tid+"-"+i+"' name='endtime_"+tid+"-"+i+"' value='"+convertToISO(max)+"' min='"+startTime+"' max='"+convertToISO(max)+"'></td>";
+                    }else{
+                        newtbody += "<td><input type='date' id='endtime_"+tid+"-"+i+"' name='endtime_"+tid+"-"+i+"' value='"+convertToISO(max)+"' min='"+convertToISO(min)+"' max='"+convertToISO(max)+"' onchange='endchange(this)'></td>";
+                    }
+                    newtbody += "<td>" + document.getElementById(tid).getElementsByTagName("td")[5].innerHTML + "</td>"
+                                + "<td>" + document.getElementById(tid).getElementsByTagName("td")[6].innerHTML + "</td>"
+                                + "</tr>";
+                    $("#"+tid).after(newtbody);
+                }
+            }else{
+                for(i=num;i>0;i--){
+                    $("#"+tid+"-"+i).remove();
+                }
+            }
+        }
+    }
+    function startchange(e){
+        var eid = e.id.replace("start","end");
+        $("#"+eid).attr("min",e.value);
+    }
+    function endchange(e){
+        var sid = e.id.replace("end","start");
+        $("#"+sid).attr("max",e.value);
+    }
+    function convertToISO(timebit) {
+        // remove GMT offset
+        timebit.setHours(0, -timebit.getTimezoneOffset(), 0, 0);
+        // format convert and take first 10 characters of result
+        var isodate = timebit.toISOString().slice(0, 10);
+        return isodate;
+    }
+</script>
+
+<form method="post" id="InsuranceTime" class="form-group">
+    <div id="targetDiv">
+        <table class="table">
+            <thead id="timehead">
+                <tr>
+                    <th>是否月底退保月初再加保</th>
+                    <th>保單編號</th>
+                    <th>被保險人學號</th>
+                    <th>開始時間</th>
+                    <th>結束時間</th>
+                    <th>雇主</th>
+                    <th>薪水</th>
+                    <th>提早離職</th>
+                </tr>
+            </thead>
+            <tbody id="timebody">
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">更新保單加退保時間</button>
+</form>
+<form method="post" id="InsurancePayment" class="form-group">
+    <div id="paymentDiv">
+        <table class="table">
+            <thead id="paymenthead">
+                <tr>
+                    <th>開始時間</th>
+                    <th></th>
+                    <th>結束時間</th>
+                    <th>付款人</th>
+                    <th>付款狀態</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="paymentbody"></tbody>
+        </table>
+    </div>
+    <button type="submit" name="submit" id="submit" class="btn btn-primary">更新付款人</button>
+</form>
+
+@section scripts
+{
+    <script>
+        function lock(starttime){
+            var currentSearchString = window.location.search.split("=");
+            var data = {"StudentID":currentSearchString[1],"StartTime":starttime};
+            $.ajax({
+                url:"/api/school/Paid",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                data:JSON.stringify(data),
+                success:function(result,status){
+                    paid_id = "paid"+starttime;
+                    $("#"+paid_id).attr("onclick","unlock(\""+starttime+"\")");
+                    $("#"+paid_id).html("取消付款");
+                    $("#"+paid_id).parent("td").prev("td").empty();
+                    $("#"+paid_id).parent("td").prev("td").append("已付款");
+                    var select_text = $("#"+paid_id).parent("td").prev("td").prev("td").children("select").val();
+                    $("#"+paid_id).parent("td").prev("td").prev("td").empty();
+                    $("#"+paid_id).parent("td").prev("td").prev("td").append(select_text);
+                    var currentSearch = window.location.search;
+                    var url1 = "/api/school/ManageFee"+currentSearch;
+                    update_time_tbody(url1);
+                }
+            })
+        }
+
+        function unlock(starttime){
+            var currentSearchString = window.location.search.split("=");
+            var data = {"StudentID":currentSearchString[1],"StartTime":starttime};
+            $.ajax({
+                url:"/api/school/unPaid",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                data:JSON.stringify(data),
+                success:function(result,status){
+                    var currentSearch = window.location.search;
+                    var url1 = "/api/school/ManageFee"+currentSearch;
+                    var url2 = "/api/school/ManagePaymentTime"+currentSearch;
+                    update_time_tbody(url1);
+                    update_payment_tbody(url2);
+                }
+            })
+        }
+
+        function update_payment_tbody(url){
+            $.ajax({
+                url: url,
+                type: "GET",
+                success: function (result, status) {
+                    $("#paymentbody").empty();
+                    console.log(result);
+                    var payment_tbody;
+                    for(info in result){
+                        payment_tbody += "<tr id='"+info+"'>"
+                                + "<td>" + result[info].startTime.split("T")[0] + "</td>"
+                                + "<td>~</td>"
+                                + "<td>" + result[info].endTime.split("T")[0] + "</td>";
+                        payment_tbody += "</select></td>";
+                        if(result[info].paid==false){
+                            payment_tbody += "<td><select id='select"+info+"' name='select"+info+"'>";
+                            var bosses = result[info].boss.split(",");
+                            for(bo in bosses){
+                                if(result[info].payment=="" && bo==0){
+                                    payment_tbody += "<option selected>" + bosses[bo] + "</option>";
+                                }else if(bosses[bo]==result[info].payment){
+                                    payment_tbody += "<option selected>" + bosses[bo] + "</option>";
+                                }else{
+                                    payment_tbody += "<option>" + bosses[bo] + "</option>";
+                                }
+                            }
+                            payment_tbody += "</select></td>"
+                                        + "<td>尚未付款</td>"
+                                        + "<td><button type='button' onclick='lock(\""+result[info].startTime.split("T")[0]+"\")' id='paid"+result[info].startTime.split("T")[0]+"'>已付款</button></td>";
+                        }else{
+                            payment_tbody += "<td>" + result[info].payment + "</td>"
+                                        + "<td>已付款</td>"
+                                        + "<td><button type='button' onclick='unlock(\""+result[info].startTime.split("T")[0]+"\")' id='paid"+result[info].startTime.split("T")[0]+"'>取消付款</button></td>";
+                        }
+                        payment_tbody += "</tr>";
+                    }
+                    $("#paymentbody").append(payment_tbody);
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        function retire(formno){
+            var input;
+            if($("#retiretime_"+formno).length>0){
+                input = $("#retiretime_"+formno).prop("max");
+                $("#retire"+formno).html("已離職");
+            }else{
+                var starttime = new Date();
+                //var start = $("#retire"+formno).parent("td").prev("td").prev("td").prev("td").prev("td").text().split("-");
+                //starttime = starttime>
+                var endtime = $("#retire"+formno).parent("td").prev("td").prev("td").prev("td").text();
+                input = "<input type='date' id='retiretime_"+formno+"' name='retiretime_"+formno+"' value='"+endtime+"' min='"+convertToISO(starttime)+"' max='"+endtime+"'>";
+                $("#retire"+formno).html("取消離職");
+            }
+            $("#retire"+formno).parent("td").prev("td").prev("td").prev("td").empty();
+            $("#retire"+formno).parent("td").prev("td").prev("td").prev("td").append(input);
+        }
+
+        function update_time_tbody(url){
+            $.ajax({
+                url: url,
+                type: "GET",
+                success: function (result, status) {
+                    $("#timebody").empty();
+                    if (result != null) {
+                        console.log(result);
+                        var temp_formno = result[0].formNo;
+                        var temp_origin = result[0].origin;
+                        for(var info in result){
+                            if(info==0 || (temp_formno!=result[info].formNo || temp_origin!=result[info].origin)){
+                                temp_formno = result[info].formNo;
+                                temp_origin = result[info].origin;
+                                var tempid = result[info].origin==-1||result[info].origin==0 ? result[info].formNo : result[info].origin.replaceAll(" ","");
+                                var temp = "#checkbox"+tempid;
+                                var time_tbody;
+                                var retire = "<td></td>";
+                                var time_locker = false;
+                                if(result[info].origin==-1){
+                                    for(var i in result){
+                                        if(result[info].formNo==result[i].formNo && result[i].paid==true){
+                                            time_locker = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                var over_month = result[info].endTime.split("T")[0].split("-")[1]!=result[info].startTime.split("T")[0].split("-")[1];
+                                if(!time_locker && result[info].origin==-1 && over_month && !result[parseInt(info,10)+1].origin.includes("o")){
+                                    time_tbody = "<tr id='"+tempid+"'>"
+                                            + "<td><input type='radio' id='together_"+tempid+"' name='radio_"+tempid+"' value='together' onchange='radiochange(this)'>"
+                                            + "<label for='together_"+tempid+"'>否</label>"
+                                            + "<input type='radio' id='separate_"+tempid+"' name='radio_"+tempid+"' value='separate' onchange='radiochange(this)' checked='checked'>"
+                                            + "<label for='separate_"+tempid+"'>是</label>"
+                                            + "</td>"
+                                            + "<td>" + result[info].formNo + "</td>";
+                                    retire = "<td><button type='button' onclick='retire(\""+tempid+"\")' id='retire"+tempid+"'>已離職</button></td>";
+                                }else if(!time_locker && over_month && result[info].origin.includes("o2") && (result[parseInt(info,10)+1].origin.includes("-"))){
+                                    time_tbody = "<tr id='"+tempid+"' style='background-color:#ff6347'>"
+                                            + "<td><input type='radio' id='together_"+tempid+"' name='radio_"+tempid+"' value='together' onchange='radiochange(this)'>"
+                                            + "<label for='together_"+tempid+"'>否</label>"
+                                            + "<input type='radio' id='separate_"+tempid+"' name='radio_"+tempid+"' value='separate' onchange='radiochange(this)' checked='checked'>"
+                                            + "<label for='separate_"+tempid+"'>是</label>"
+                                            + "</td>"
+                                            + "<td>" + result[info].origin.replace("o"," of ") + "</td>";
+                                }else if(!result[info].paid && result[info].origin==0 && over_month){
+                                    time_tbody = "<tr id='"+tempid+"'>"
+                                            + "<td><input type='radio' id='together_"+tempid+"' name='radio_"+tempid+"' value='together' onchange='radiochange(this)' checked='checked'>"
+                                            + "<label for='together_"+tempid+"'>否</label>"
+                                            + "<input type='radio' id='separate_"+tempid+"' name='radio_"+tempid+"' value='separate' onchange='radiochange(this)'>"
+                                            + "<label for='separate_"+tempid+"'>是</label>"
+                                            + "</td>"
+                                            + "<td>" + result[info].formNo + "</td>";
+                                    retire = "<td><button type='button' onclick='retire(\""+tempid+"\")' id='retire"+tempid+"'>已離職</button></td>";
+                                }else if(!result[info].paid && (result[info].origin.includes("o2")&&!result[parseInt(info,10)+1].origin.includes("-")) && over_month){
+                                    time_tbody = "<tr id='"+tempid+"' style='background-color:#ff6347'>"
+                                            + "<td><input type='radio' id='together_"+tempid+"' name='radio_"+tempid+"' value='together' onchange='radiochange(this)' checked='checked'>"
+                                            + "<label for='together_"+tempid+"'>否</label>"
+                                            + "<input type='radio' id='separate_"+tempid+"' name='radio_"+tempid+"' value='separate' onchange='radiochange(this)'>"
+                                            + "<label for='separate_"+tempid+"'>是</label>"
+                                            + "</td>"
+                                            + "<td>" + result[info].origin.replace("o"," of ") + "</td>";
+                                }else if(result[info].origin!=0 && result[info].origin!=-1 && result[info].origin!=-2){
+                                    if(tempid.includes("-")){
+                                        time_tbody = "<tr id='"+tempid+"' style='background-color:#87CEFA'>"
+                                            + "<td></td>"
+                                            + "<td>" + result[info].origin.replace("o"," of ") + "</td>";
+                                    }else{
+                                        time_tbody = "<tr id='"+tempid+"' style='background-color:#ff6347'>"
+                                            + "<td></td>"
+                                            + "<td>" + result[info].origin.replace("o"," of ") + "</td>";
+                                    }
+                                }else{
+                                    time_tbody = "<tr id='"+tempid+"'>"
+                                            + "<td></td>"
+                                            + "<td>" + result[info].formNo + "</td>";
+                                    retire = result[info].origin!=-2 ? "<td><button type='button' onclick='retire(\""+tempid+"\")' id='retire"+tempid+"'>已離職</button></td>" : retire;
+                                }
+                                result[info].payment = result[info].payment==null?"":result[info].payment;
+                                time_tbody += "<td>" + result[info].studentID + "</td>"
+                                    + "<td>" + result[info].startTime.split("T")[0] + "</td>"
+                                    + "<td>" + result[info].endTime.split("T")[0] + "</td>"
+                                    + "<td>" + result[info].boss + "</td>"
+                                    + "<td>" + result[info].salary + "</td>"
+                                    + retire
+                                    + "</tr>";
+                                $("#timebody").append(time_tbody);
+                            }
+                        }
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+
+        $("document").ready(function () {
+            var currentSearchString = window.location.search;
+            var url1 = "/api/school/ManageFee"+currentSearchString;
+            var url2 = "/api/school/ManagePaymentTime"+currentSearchString;
+            update_time_tbody(url1);
+
+            update_payment_tbody(url2);
+        });
+
+        function getFormData($form) {
+            var unindexed_array = $form.serializeArray();
+            var indexed_array = {};
+            $.map(unindexed_array, function (n, i) {
+                indexed_array[n['name']] = n['value'];
+            });
+            return indexed_array;
+        }
+
+        $("#InsuranceTime").on('submit', function (e) {
+            e.preventDefault();
+            var $form = getFormData($("#InsuranceTime"));
+            console.log($form);
+            var data = [];
+            var ti,st,ed;
+            for(i in $form){
+                var temp = i.split("_");
+                if(temp[0]=="radio"){
+                    st = document.getElementById(temp[1]).getElementsByTagName("td")[3].innerHTML;
+                    ed = document.getElementById(temp[1]).getElementsByTagName("td")[4].innerHTML;
+                    if($form[i]=="separate"){
+                        data.push({"FormNo":temp[1].split("o")[0],"Origin":"-1","StartTime":st,"EndTime":ed});
+                    }else if($form[i]=="together" && temp[1].includes("o")){
+                        data.push({"FormNo":temp[1].split("o")[0],"Origin":"together","StartTime":st,"EndTime":ed});
+                    }else if(temp[1].includes("o")){
+                        data.push({"FormNo":temp[1].split("o")[0],"Origin":temp[1],"StartTime":st,"EndTime":ed});
+                    }else{
+                        data.push({"FormNo":temp[1],"Origin":"0","StartTime":st,"EndTime":ed});
+                    }
+                }else if(temp[0]=="retiretime"){
+                    st = document.getElementById(temp[1]).getElementsByTagName("td")[3].innerHTML;
+                    data.push({"FormNo":temp[1],"Origin":"-2","StartTime":st,"EndTime":$form[i]});
+                }else if(temp[0]=="starttime"){
+                    ti = $form[i];
+                }else if(temp[0]=="endtime"){
+                    data.push({"FormNo":temp[1].split("-")[0].split("o")[0],"Origin":temp[1],"StartTime":ti,"EndTime":$form[i]});
+                }
+            }
+            console.log(data);
+            if(data.length!=0){
+                var _Object = {InsuranceTimeList:data};
+                $.ajax({
+                    url: "/api/school/InsuranceTime",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify(_Object),
+                    success: function (result, status) {
+                        var currentSearchString = window.location.search;
+                        currentSearchString = currentSearchString.replace("?No=","");
+                        var url = "/api/school/ManagePaymentTime"+currentSearchString;
+                        update_payment_tbody(url);
+                        var url1 = "/api/school/ManageFee"+currentSearchString;
+                        update_time_tbody(url1);
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        });
+
+        $("#InsurancePayment").on('submit', function (e) {
+            e.preventDefault();
+            var $form = getFormData($("#InsurancePayment"));
+            console.log($form);
+            var data = [];
+            for(i in $form){
+                if(i.includes("select")){
+                    var tid = i.replace("select","");
+                    var st = document.getElementById(tid).getElementsByTagName("td")[0].innerHTML;
+                    var ed = document.getElementById(tid).getElementsByTagName("td")[2].innerHTML;
+                    data.push({"Payment":$form[i],"StartTime":st,"EndTime":ed});
+                }
+            }
+            console.log(data);
+            if(data.length!=0){
+                var currentSearchString = window.location.search.split("?StudentID=")[1];
+                var _Object = {InsurancePaymentList:data,StudentID:currentSearchString};
+                console.log(JSON.stringify(_Object));
+                $.ajax({
+                    url: "/api/school/InsurancePayment",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify(_Object),
+                    success: function (result, status) {
+                        var currentSearchString = window.location.search;
+                        currentSearchString = currentSearchString.replace("?No=","");
+                        var url = "/api/school/ManageFee"+currentSearchString;
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+        });
+    </script>
+}
